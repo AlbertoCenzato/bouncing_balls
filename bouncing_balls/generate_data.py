@@ -9,12 +9,10 @@ import argparse
 import numpy as np
 from random import random, randint
 
-from bouncing_balls.bouncing_balls import BouncingBalls
-from bouncing_balls.video_writer import BufferedBinaryWriter
-from bouncing_balls.render import VideoRenderer, PositionAndVelocityExtractor, CentroidVideoRenderer
+from bouncing_balls import BouncingBalls
+from video_writer import BufferedBinaryWriter
+from render import VideoRenderer
 
-from deep_predictive_coding.model_type import ModelType
-from settings import TESTS_CONFIG
 
 # ------------------ Constants ----------------------------------
 
@@ -111,7 +109,7 @@ def random_pos_outside_rectangle(rect):
 
 def generate_dataset(config, train_or_test, suppress_output):
     if train_or_test != Config.train and train_or_test != Config.test:
-        raise ValueError("trainOrTest parameter must have one of the two values 'test' or 'train'")
+        raise ValueError("train_or_test parameter must have one of the two values 'test' or 'train'")
     dataset_dir = os.path.join(config.data_dir, train_or_test)
     if not os.path.exists(dataset_dir): os.mkdir(dataset_dir)
     file_name = os.path.join(dataset_dir, "bouncing_balls_")
@@ -122,20 +120,13 @@ def generate_dataset(config, train_or_test, suppress_output):
     samples = config.sequences if train_or_test == Config.train else config.sequences // 10
     frame_per_sequence = config.sequence_len
 
-    if hasattr(config,'model_type'):
-        if config.model_type == ModelType.SINGLE_PIXEL_ACTIVATION:
-            renderer = CentroidVideoRenderer(Config.screen_width, Config.screen_height)
-        elif config.model_type == ModelType.STATE_VECTOR:
-            renderer = PositionAndVelocityExtractor(Config.screen_width, Config.screen_height)
-    else:
-        renderer = VideoRenderer(Config.screen_width, Config.screen_height)
+    renderer = VideoRenderer(Config.screen_width, Config.screen_height)
 
     with BouncingBalls(renderer) as bouncing_balls:
         bouncing_balls.set_fps(fps)
         bouncing_balls.suppress_output(suppress_output)
         writer = BufferedBinaryWriter()
         for i in range(samples):
-            # print("Rendering sequence " + str(i))
             bouncing_balls.save_to(file_name + str(i) + extension, writer)
 
             if config.occlusion:
@@ -158,31 +149,40 @@ def generate_dataset(config, train_or_test, suppress_output):
             bouncing_balls.reset()
 
 
-def generate_autoencoder_dataset(dataset_dir, samples):
-    if not os.path.exists(dataset_dir): os.mkdir(dataset_dir)
-    file_name = os.path.join(dataset_dir, "bouncing_balls_")
-    extension = ".npy"
+#def generate_autoencoder_dataset(dataset_dir, samples):
+#    if not os.path.exists(dataset_dir): os.mkdir(dataset_dir)
+#    file_name = os.path.join(dataset_dir, "bouncing_balls_")
+#    extension = ".npy"
+#
+#    fps = 60
+#    frame_per_sequence = 1
+#    renderer = VideoRenderer(Config.screen_width, Config.screen_height)
+#    with BouncingBalls(renderer) as bouncing_balls:
+#        bouncing_balls.set_fps(fps)
+#        bouncing_balls.suppress_output(True)
+#        writer = BufferedBinaryWriter()
+#        for i in range(samples):
+#            print("Rendering sequence " + str(i))
+#            bouncing_balls.save_to(file_name + str(i) + extension, writer)
+#
+#            for j in range(randint(1, 5)):
+#                bouncing_balls.add_rand_circle(max_vel=5000)
+#
+#            for k in range(frame_per_sequence):
+#                bouncing_balls.step()
+#
+#            bouncing_balls.reset()
 
-    fps = 60
-    frame_per_sequence = 1
-    with BouncingBalls(Config.screen_width, Config.screen_height) as bouncing_balls:
-        bouncing_balls.set_fps(fps)
-        bouncing_balls.suppress_output(True)
-        writer = BufferedBinaryWriter()
-        for i in range(samples):
-            print("Rendering sequence " + str(i))
-            bouncing_balls.save_to(file_name + str(i) + extension, writer)
 
-            for j in range(randint(1, 5)):
-                bouncing_balls.add_rand_circle(max_vel=5000)
+def generate_data(config, suppress_output=True):
+    """ Generates a dataset with the parameters specified by config which is 
+        a Config object. 
+        
+        Arguments:
+        config -- a Config object specifing how to build the dataset
+        suppress_output -- if False the sequences are showed while they are
+                           rendered (default True) """
 
-            for k in range(frame_per_sequence):
-                bouncing_balls.step()
-
-            bouncing_balls.reset()
-
-
-def generate(config, suppress_output=True):
     if os.path.exists(config.data_dir):  # if dataset already generated do nothing
         train_dir = os.path.join(config.data_dir, Config.train)
         test_dir = os.path.join(config.data_dir, Config.test)
@@ -191,17 +191,17 @@ def generate(config, suppress_output=True):
     else:
         os.mkdir(config.data_dir)
 
+    print("Generating training set...")
     generate_dataset(config, Config.train, suppress_output)
+    print("Done!")
+    print("Generating testing set...")
     generate_dataset(config, Config.test, suppress_output)
-
+    print("Done!")
 
 
 
 if __name__ == "__main__":
-    # generateAutoencoderDataset("C:\\Users\\Alberto\\Projects\\Datasets\\bouncing_balls\\autoencoder_dataset\\test", 100)
-
     parser = argparse.ArgumentParser(description='Generates bouncing balls dataset.')
-    parser.add_argument('--config', help='path of the config file')
     parser.add_argument('--balls', required=True, type=int, help='number of balls')
     parser.add_argument('--sequence_len', required=True, type=int, help='number of frames in the sequence')
     parser.add_argument('--sequences', required=True, type=int, help='number of sequences to generate')
@@ -217,7 +217,4 @@ if __name__ == "__main__":
     
     config = Config(args.sequences, args.sequence_len, args.occlusion, args.balls, args.data_dir)
 
-    #for config in TESTS_CONFIG:
-    #    print("Generating dataset " + str(config))
-    generate(config, suppress_output=not args.verbose)
-    #    print("\n\n")
+    generate_data(config, suppress_output=not args.verbose)

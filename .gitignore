@@ -1,0 +1,5 @@
+bouncing_balls/*.pyc
+.vscode/
+bouncing_balls.egg-info/
+build/
+dist/
