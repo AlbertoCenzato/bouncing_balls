@@ -11,38 +11,41 @@ from random import random, randint
 
 from bouncing_balls import BouncingBalls
 from video_writer import BufferedBinaryWriter
-from render import VideoRenderer
+from render import VideoRenderer, Channels
 
 
 # ------------------ Constants ----------------------------------
 
 class Config:
 
-    screen_width = 64
-    screen_height = 48
     train = "train"
     test = "test"
 
-    def __init__(self, sequences, sequence_len, occlusion, balls, data_dir, mean_vel=5000, dof=2):
-        self.sequences    = sequences
-        self.sequence_len = sequence_len
-        self.occlusion    = occlusion
-        self.balls        = balls
-        self.data_dir     = data_dir if data_dir is not None else 'data'
-        self.mean_vel     = mean_vel
-        self.dof          = dof
+    def __init__(self, sequences, sequence_len, occlusion, balls, data_dir, mean_vel=5000, 
+                 dof=2, screen_height=48, screen_width=64, channels_ordering=Channels.FIRST):
+        self.sequences     = sequences
+        self.sequence_len  = sequence_len
+        self.occlusion     = occlusion
+        self.balls         = balls
+        self.data_dir      = data_dir if data_dir is not None else 'data'
+        self.mean_vel      = mean_vel
+        self.dof           = dof
+        self.screen_height = screen_height
+        self.screen_width  = screen_width
+        self.channels_ordering = channels_ordering
 
 
 # ------------------ Function definitions ------------------------
 
 def get_angle(vect1, vect2):
-    """Returns the angle (in radians) between two given vectors"""
+    """ Returns the angle (in radians) between two given vectors """
     return math.acos(np.dot(vect1, vect2) / (np.linalg.norm(vect1) * np.linalg.norm(vect2)))
 
 
 def random_trajectory_through_rectangle(init_pos, rect):
-    """Returns a random unit norm vector defining the trajectory
-      that starts from point initPos and intersects with the rectangle rect"""
+    """ Returns a random unit norm vector defining the trajectory
+        that starts from point initPos and intersects with the rectangle rect
+    """
 
     min_x, max_x = rect[0] + 10, rect[0] + rect[2] - 10
     min_y, max_y = rect[1] + 10, rect[1] + rect[3] - 10
@@ -92,18 +95,19 @@ def random_trajectory_through_rectangle(init_pos, rect):
     return (math.cos(rand_angle), math.sin(rand_angle))
 
 
-def random_pos_outside_rectangle(rect):
-    """Returns a random position, (x,y) tuple, such that (x,y)
-      is not a point inside the rectangle area"""
+def random_pos_outside_rectangle(screen_height, screen_width, rect):
+    """ Returns a random position, (x,y) tuple, such that (x,y)
+        is not a point inside the rectangle area
+    """
     tol = 3
-    x = random() * Config.screen_width
+    x = random() * screen_width
     if rect[0] - tol < x < rect[0] + rect[2] + tol:
-        empty_interval_y = Config.screen_height - rect[3] - 2 * tol
+        empty_interval_y = screen_height - rect[3] - 2 * tol
         y = random() * empty_interval_y
         if y > rect[1] - tol:
             y += rect[3] + 2 * tol
     else:
-        y = random() * Config.screen_height
+        y = random() * screen_height
     return x, y
 
 
@@ -120,7 +124,7 @@ def generate_dataset(config, train_or_test, suppress_output):
     samples = config.sequences if train_or_test == Config.train else config.sequences // 10
     frame_per_sequence = config.sequence_len
 
-    renderer = VideoRenderer(Config.screen_width, Config.screen_height)
+    renderer = VideoRenderer(config.screen_width, config.screen_height, config.channels_ordering)
 
     with BouncingBalls(renderer) as bouncing_balls:
         bouncing_balls.set_fps(fps)
@@ -131,61 +135,37 @@ def generate_dataset(config, train_or_test, suppress_output):
 
             if config.occlusion:
                 bouncing_balls.add_rectangular_occlusion(rectangle)
-                for j in range(config.balls):
+                for _ in range(config.balls):
                     vel = np.random.normal(config.mean_vel, config.mean_vel // 10)
-                    position = random_pos_outside_rectangle(rectangle)
+                    position = random_pos_outside_rectangle(config.screen_height, config.screen_width, rectangle)
                     (vx, vy) = random_trajectory_through_rectangle(position, rectangle)
                     bouncing_balls.add_circle(position, (vx * vel, vy * vel))
             else:
-                for j in range(config.balls):
+                for _ in range(config.balls):
                     if config.dof == 1:
                         bouncing_balls.add_circle(bouncing_balls.get_rand_pos(), (2 * 5000 * random() - 5000, 0))
                     elif config.dof == 2:
-                        bouncing_balls.add_rand_circle(max_vel=config.mean_vel)
+                        bouncing_balls.add_rand_circle(mean_vel=config.mean_vel)
 
-            for k in range(frame_per_sequence):
+            for _ in range(frame_per_sequence):
                 bouncing_balls.step()
 
             bouncing_balls.reset()
-
-
-#def generate_autoencoder_dataset(dataset_dir, samples):
-#    if not os.path.exists(dataset_dir): os.mkdir(dataset_dir)
-#    file_name = os.path.join(dataset_dir, "bouncing_balls_")
-#    extension = ".npy"
-#
-#    fps = 60
-#    frame_per_sequence = 1
-#    renderer = VideoRenderer(Config.screen_width, Config.screen_height)
-#    with BouncingBalls(renderer) as bouncing_balls:
-#        bouncing_balls.set_fps(fps)
-#        bouncing_balls.suppress_output(True)
-#        writer = BufferedBinaryWriter()
-#        for i in range(samples):
-#            print("Rendering sequence " + str(i))
-#            bouncing_balls.save_to(file_name + str(i) + extension, writer)
-#
-#            for j in range(randint(1, 5)):
-#                bouncing_balls.add_rand_circle(max_vel=5000)
-#
-#            for k in range(frame_per_sequence):
-#                bouncing_balls.step()
-#
-#            bouncing_balls.reset()
 
 
 def generate_data(config, suppress_output=True):
     """ Generates a dataset with the parameters specified by config which is 
         a Config object. 
         
-        Arguments:
-        config -- a Config object specifing how to build the dataset
-        suppress_output -- if False the sequences are showed while they are
-                           rendered (default True) """
+        Args:
+         - config: a Config object specifing how to build the dataset
+         - suppress_output: if False the sequences are showed while they are
+                            rendered (default True) 
+    """
 
     if os.path.exists(config.data_dir):  # if dataset already generated do nothing
         train_dir = os.path.join(config.data_dir, Config.train)
-        test_dir = os.path.join(config.data_dir, Config.test)
+        test_dir  = os.path.join(config.data_dir, Config.test)
         if len(os.listdir(train_dir)) == config.sequences and len(os.listdir(test_dir)) == config.sequences // 10:
             return
     else:
@@ -205,8 +185,12 @@ if __name__ == "__main__":
     parser.add_argument('--balls', required=True, type=int, help='number of balls')
     parser.add_argument('--sequence_len', required=True, type=int, help='number of frames in the sequence')
     parser.add_argument('--sequences', required=True, type=int, help='number of sequences to generate')
-    parser.add_argument('--occlusion', action='store_true', help='if true puts and occlusion at the center of the screen')
+    parser.add_argument('--occlusion', action='store_true', help='if true puts an occlusion at the center of the screen')
     parser.add_argument('--data_dir', help='output directory')
+    parser.add_argument('--height', type=int, help='image height')
+    parser.add_argument('--width', type=int, help='image width')
+    parser.add_argument('--channels_last', action='store_true', help='if true the frames have shape \
+                        (height, width, channels), otherwise they have shape (channels, height, width)')
     parser.add_argument('--verbose', action='store_true', help='activates verbose mode showing the produced sequences')
 
     try:
@@ -215,6 +199,8 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(0)
     
-    config = Config(args.sequences, args.sequence_len, args.occlusion, args.balls, args.data_dir)
+    channels_ordering = Channels.LAST if args.channels_last else Channels.FIRST
+    config = Config(args.sequences, args.sequence_len, args.occlusion, args.balls, args.data_dir, 
+                    screen_height=args.height, screen_width=args.width, channels_ordering=channels_ordering)
 
     generate_data(config, suppress_output=not args.verbose)

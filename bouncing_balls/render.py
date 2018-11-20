@@ -1,6 +1,7 @@
 import pygame, Box2D
 import numpy as np
 import cv2
+from enum import Enum
 
 
 def center_of_mass(point_list):
@@ -8,6 +9,11 @@ def center_of_mass(point_list):
     for point in point_list:
         center += point
     return center / len(point_list)
+
+
+class Channels(Enum):
+    FIRST = 1
+    LAST  = 2
 
 
 class Renderer(object):
@@ -18,11 +24,10 @@ class Renderer(object):
     PPM = 1.0  # pixels per meter
 
     def __init__(self, screen_width, screen_height):
-        # self.world = world
-        self.screen_width_px = screen_width
+        self.screen_width_px  = screen_width
         self.screen_height_px = screen_height
         self.screen = None
-        self.__visible = True
+        self._visible = True
 
     @staticmethod
     def pixels_to_meters(pixels):
@@ -34,11 +39,11 @@ class Renderer(object):
 
     @property
     def is_visible(self):
-        return self.__visible
+        return self._visible
 
     @is_visible.setter
     def is_visible(self, visible):
-        self.__visible = visible
+        self._visible = visible
 
     def to_world_frame(self, point):
         return Renderer.pixels_to_meters(point[0]), Renderer.pixels_to_meters(self.screen_height_px - point[1])
@@ -59,8 +64,16 @@ class VideoRenderer(Renderer):
     COLOR_WHITE = (255, 255, 255, 255)
     COLOR_BLACK = (0, 0, 0, 0)
 
-    def __init__(self, screen_width, screen_height):
+    def __init__(self, screen_width, screen_height, channel_ordering):
+        """ Args:
+             - screen_width:  width (in pixels) of the rendered scene
+             - screen_height: heigth (in pixels) of the rendered scene
+             - channel_ordering: Channel enum specifying if get_frame() returns
+                                 (channels, height, width) images or
+                                 (height, width, channels) images
+        """
         super(VideoRenderer, self).__init__(screen_width, screen_height)
+        self.channel_ordering = channel_ordering
         self.screen = pygame.display.set_mode((screen_width, screen_height), 0, 32)
         pygame.display.set_caption('Simple pygame example')
 
@@ -97,7 +110,8 @@ class VideoRenderer(Renderer):
 
         array = np.frombuffer(self.screen.get_buffer(), dtype='uint8')
         image = np.reshape(array, (self.screen_height_px, self.screen_width_px, 4))
-        return np.reshape(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), (self.screen_height_px, self.screen_width_px,1))
+        image_shape = (self.screen_height_px, self.screen_width_px, 1) if self.channel_ordering == Channels.LAST else (1, self.screen_height_px, self.screen_width_px)
+        return np.reshape(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), image_shape)
 
     def reset(self):
         self.screen.fill(self.COLOR_BLACK)

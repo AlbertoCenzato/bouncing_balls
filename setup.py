@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="bouncing_balls",
-    version="0.0.2",
+    version="0.1.0",
     author="Alberto Cenzato",
     author_email="alberto.cenzato@outlook.it",
     description="Random bouncing balls dataset generator",

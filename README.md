@@ -1,5 +1,4 @@
 # Bouncing Balls
 
-This is a simple example package. You can use
-[Github-flavored Markdown](https://guides.github.com/features/mastering-markdown/)
-to write your content.
+A simple bouncing-balls dataset generator utility. Can be used either as a
+script (python -m bouncing_balls.generate_data) or trough the low-level APIs.

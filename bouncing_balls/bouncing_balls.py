@@ -148,9 +148,9 @@ class BouncingBalls(object):
         circle.userData = BouncingBalls.BodyData("circle")
 
 
-    def add_rand_circle(self, max_vel=5000):
+    def add_rand_circle(self, mean_vel=5000):
         position = self.get_rand_pos()
-        velocity = get_rand_vel(max_vel)
+        velocity = get_rand_vel(mean_vel)
         self.add_circle(position, velocity)
 
 
