@@ -193,11 +193,7 @@ if __name__ == "__main__":
                         (height, width, channels), otherwise they have shape (channels, height, width)')
     parser.add_argument('--verbose', action='store_true', help='activates verbose mode showing the produced sequences')
 
-    try:
-        args = parser.parse_args()
-    except:
-        parser.print_help()
-        sys.exit(0)
+    args = parser.parse_args()
     
     channels_ordering = Channels.LAST if args.channels_last else Channels.FIRST
     config = Config(args.sequences, args.sequence_len, args.occlusion, args.balls, args.data_dir, 
