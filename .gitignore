@@ -1,5 +1,6 @@
 bouncing_balls/*.pyc
 .vscode/
+__pycache__/
 bouncing_balls.egg-info/
 build/
 dist/
