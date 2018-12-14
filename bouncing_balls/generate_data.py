@@ -172,9 +172,7 @@ def generate_data(config, suppress_output=True):
         test_dir  = os.path.join(config.data_dir, Config.test)
         valid_dir = os.path.join(config.data_dir, Config.valid)
         if exists_and_isdir(train_dir) and exists_and_isdir(test_dir) and exists_and_isdir(valid_dir):
-            if len(os.listdir(train_dir)) == config.sequences and 
-               len(os.listdir(test_dir))  == config.sequences // 10 and
-               len(os.listdir(valid_dir)) == config.sequences // 10:
+            if len(os.listdir(train_dir)) == config.sequences and len(os.listdir(test_dir))  == config.sequences // 10 and len(os.listdir(valid_dir)) == config.sequences // 10:
                 return
     else:
         os.mkdir(config.data_dir)
