@@ -18,8 +18,9 @@ from .render import VideoRenderer, Channels
 
 class Config:
 
-    train = "train"
-    test = "test"
+    train = 'train'
+    test  = 'test'
+    valid = 'validation'
 
     def __init__(self, sequences, sequence_len, occlusion, balls, data_dir, mean_vel=5000, 
                  dof=2, screen_height=48, screen_width=64, channels_ordering=Channels.FIRST):
@@ -36,6 +37,9 @@ class Config:
 
 
 # ------------------ Function definitions ------------------------
+
+def exists_and_isdir(path):
+    return os.path.exists(path) and os.path.isdir(path)
 
 def get_angle(vect1, vect2):
     """ Returns the angle (in radians) between two given vectors """
@@ -163,11 +167,15 @@ def generate_data(config, suppress_output=True):
                             rendered (default True) 
     """
 
-    if os.path.exists(config.data_dir):  # if dataset already generated do nothing
+    if exists_and_isdir(config.data_dir):  # if dataset already generated do nothing
         train_dir = os.path.join(config.data_dir, Config.train)
         test_dir  = os.path.join(config.data_dir, Config.test)
-        if len(os.listdir(train_dir)) == config.sequences and len(os.listdir(test_dir)) == config.sequences // 10:
-            return
+        valid_dir = os.path.join(config.data_dir, Config.valid)
+        if exists_and_isdir(train_dir) and exists_and_isdir(test_dir) and exists_and_isdir(valid_dir):
+            if len(os.listdir(train_dir)) == config.sequences and 
+               len(os.listdir(test_dir))  == config.sequences // 10 and
+               len(os.listdir(valid_dir)) == config.sequences // 10:
+                return
     else:
         os.mkdir(config.data_dir)
 
