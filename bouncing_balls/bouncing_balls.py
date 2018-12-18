@@ -1,13 +1,12 @@
-from __future__ import division
+import math, random
 
-import pygame, math
+import pygame
 import Box2D
-from numpy import random
 
 
 def get_rand_vel(mean_vel):
     angle = 2 * math.pi * random.random()
-    norm = random.normal(mean_vel, mean_vel // 10)
+    norm = random.gauss(mean_vel, mean_vel / 10)
     vx = math.cos(angle) * norm
     vy = math.sin(angle) * norm
     return vx, vy
@@ -16,8 +15,8 @@ def get_rand_vel(mean_vel):
 class BouncingBalls(object):
     # --- constants ---
     DEFAULT_FPS = 60
-    SAVE_VIDEO = 'save_video'
-    SAVE_STATE = 'save_state'
+    #SAVE_VIDEO = 'save_video'
+    #SAVE_STATE = 'save_state'
 
     class BodyData(object):
 
@@ -25,13 +24,14 @@ class BouncingBalls(object):
             self.name = name
             self.visible = visible
 
-    def __init__(self, renderer):
-        """ Instantiates a dynamic bouncing balls model.
-          operating_mode: one of 'save_video' or 'save_state' """
+    def __init__(self, renderer, save_metadata=True):
+        """ Instantiates a dynamic bouncing balls model. """
         self.__fps = 0
         self.__timeStep = 0
         self.bounding_box = None
         self.writer = None
+        self.save_metadata = save_metadata
+        self.metadata = []
 
         self.save = False
         self.set_fps(self.DEFAULT_FPS)
@@ -120,22 +120,22 @@ class BouncingBalls(object):
         occlusion.userData = BouncingBalls.BodyData("rectangular_occlusion")
 
 
-    def add_square(self, pos, vel, angle):
-        pos = self.renderer.to_world_frame(pos)
-        vel = (self.renderer.pixels_to_meters(vel[0]), -self.renderer.pixels_to_meters(vel[1]))
-        size = 1
-        center = (pos[0] + size / 2, pos[1] + size / 2)
-        square = self.world.CreateDynamicBody(position=center, angle=angle)
-        square.CreatePolygonFixture(box=(size, size), density=1, friction=0, restitution=1)
-        square.linearVelocity = vel
-        square.userData = BouncingBalls.BodyData("square")
-
-
-    def add_rand_square(self):
-        position = self.get_rand_pos()
-        velocity = get_rand_vel(10)
-        angle = random.random() * 90
-        self.add_square(position, velocity, angle)
+    #def add_square(self, pos, vel, angle):
+    #    pos = self.renderer.to_world_frame(pos)
+    #    vel = (self.renderer.pixels_to_meters(vel[0]), -self.renderer.pixels_to_meters(vel[1]))
+    #    size = 1
+    #    center = (pos[0] + size / 2, pos[1] + size / 2)
+    #    square = self.world.CreateDynamicBody(position=center, angle=angle)
+    #    square.CreatePolygonFixture(box=(size, size), density=1, friction=0, restitution=1)
+    #    square.linearVelocity = vel
+    #    square.userData = BouncingBalls.BodyData("square")
+#
+#
+    #def add_rand_square(self):
+    #    position = self.get_rand_pos()
+    #    velocity = get_rand_vel(10)
+    #    angle = random.random() * 90
+    #    self.add_square(position, velocity, angle)
 
 
     def add_circle(self, pos, vel):
@@ -158,6 +158,8 @@ class BouncingBalls(object):
         frame = self.renderer.get_frame(self.world)
         if self.save:
             self.writer.write(frame)
+        if self.save_metadata:
+            self._collect_metadata()
 
         # Make Box2D simulate the physics of our world for one step.
         # Instruct the world to perform a single step of simulation.
@@ -190,9 +192,23 @@ class BouncingBalls(object):
             self.writer.close()
         self.clock = pygame.time.Clock()
         self.renderer.reset()
+        self.metadata = []
 
 
     def quit(self):
         pygame.quit()
         if self.save:
             self.writer.close()
+
+    def _collect_metadata(self):
+        balls_coordinates = []
+        for body in self.world.bodies:
+            if body.userData.visible:
+                # The fixture holds information like density, friction and shape.
+                for fixture in body.fixtures:
+                    shape = fixture.shape
+
+                    if isinstance(shape, Box2D.b2CircleShape):
+                        center = self.renderer.to_screen_frame(body.position)
+                        balls_coordinates.append([center[0], center[1]])
+        self.metadata.append(balls_coordinates)

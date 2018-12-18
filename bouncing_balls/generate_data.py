@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import division
-import sys
-import string
 import math, os
 import argparse
 
 import numpy as np
-from random import random, randint
+from random import random
 
 from bouncing_balls import BouncingBalls
-from .video_writer import BufferedBinaryWriter
-from .render import VideoRenderer, Channels
+from video_writer import BufferedBinaryWriter
+from render import VideoRenderer, Channels
 
 
 # ------------------ Constants ----------------------------------
@@ -23,7 +20,7 @@ class Config:
     valid = 'validation'
 
     def __init__(self, sequences, sequence_len, occlusion, balls, data_dir, mean_vel=5000, 
-                 dof=2, screen_height=48, screen_width=64, channels_ordering=Channels.FIRST):
+                 dof=2, screen_height=48, screen_width=64, channels_ordering=Channels.FIRST, save_metadata=True):
         self.sequences     = sequences
         self.sequence_len  = sequence_len
         self.occlusion     = occlusion
@@ -33,6 +30,7 @@ class Config:
         self.dof           = dof
         self.screen_height = screen_height
         self.screen_width  = screen_width
+        self.save_metadata = save_metadata
         self.channels_ordering = channels_ordering
 
 
@@ -130,10 +128,11 @@ def generate_dataset(config, train_or_test, suppress_output):
 
     renderer = VideoRenderer(config.screen_width, config.screen_height, config.channels_ordering)
 
-    with BouncingBalls(renderer) as bouncing_balls:
+    with BouncingBalls(renderer, config.save_metadata) as bouncing_balls:
         bouncing_balls.set_fps(fps)
         bouncing_balls.suppress_output(suppress_output)
         writer = BufferedBinaryWriter()
+        metadata = []
         for i in range(samples):
             bouncing_balls.save_to(file_name + str(i) + extension, writer)
 
@@ -154,7 +153,12 @@ def generate_dataset(config, train_or_test, suppress_output):
             for _ in range(frame_per_sequence):
                 bouncing_balls.step()
 
+            if config.save_metadata:
+                metadata.append(bouncing_balls.metadata)
             bouncing_balls.reset()
+
+        if config.save_metadata:
+            np.save(os.path.join(dataset_dir, "metadata.npy"),np.array(metadata))
 
 
 def generate_data(config, suppress_output=True):
@@ -208,5 +212,5 @@ if __name__ == "__main__":
     channels_ordering = Channels.LAST if args.channels_last else Channels.FIRST
     config = Config(args.sequences, args.sequence_len, args.occlusion, args.balls, args.data_dir, 
                     screen_height=args.height, screen_width=args.width, channels_ordering=channels_ordering)
-
+    
     generate_data(config, suppress_output=not args.verbose)
