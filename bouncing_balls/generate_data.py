@@ -6,9 +6,9 @@ import argparse
 import numpy as np
 from random import random
 
-from bouncing_balls import BouncingBalls
-from video_writer import BufferedBinaryWriter
-from render import VideoRenderer, Channels
+from .bouncing_balls import BouncingBalls
+from .video_writer import BufferedBinaryWriter
+from .render import VideoRenderer, Channels
 
 
 # ------------------ Constants ----------------------------------
