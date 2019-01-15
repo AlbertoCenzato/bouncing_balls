@@ -44,7 +44,7 @@ class Config:
         self.occlusion     = occlusion
         self.balls         = balls
         self.balls_radius  = balls_radius
-        self.data_dir      = data_dir if data_dir is not None else os.path('data')
+        self.data_dir      = data_dir if data_dir is not None else 'data'
         self.mean_vel      = mean_vel
         self.dof           = dof
         self.screen_height = screen_height
@@ -224,6 +224,7 @@ if __name__ == "__main__":
     parser.add_argument('--balls', required=True, type=int, help='number of balls')
     parser.add_argument('--sequence_len', required=True, type=int, help='number of frames in the sequence')
     parser.add_argument('--sequences', required=True, type=int, help='number of sequences to generate')
+    parser.add_argument('--balls_radius', type=int, default=5, help='radius of the bouncing balls')
     parser.add_argument('--occlusion', action='store_true', help='if true puts an occlusion at the center of the screen')
     parser.add_argument('--data_dir', help='output directory')
     parser.add_argument('--height', type=int, default=48, help='image height')
