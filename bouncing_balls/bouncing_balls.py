@@ -120,38 +120,20 @@ class BouncingBalls(object):
         occlusion.userData = BouncingBalls.BodyData("rectangular_occlusion")
 
 
-    #def add_square(self, pos, vel, angle):
-    #    pos = self.renderer.to_world_frame(pos)
-    #    vel = (self.renderer.pixels_to_meters(vel[0]), -self.renderer.pixels_to_meters(vel[1]))
-    #    size = 1
-    #    center = (pos[0] + size / 2, pos[1] + size / 2)
-    #    square = self.world.CreateDynamicBody(position=center, angle=angle)
-    #    square.CreatePolygonFixture(box=(size, size), density=1, friction=0, restitution=1)
-    #    square.linearVelocity = vel
-    #    square.userData = BouncingBalls.BodyData("square")
-#
-#
-    #def add_rand_square(self):
-    #    position = self.get_rand_pos()
-    #    velocity = get_rand_vel(10)
-    #    angle = random.random() * 90
-    #    self.add_square(position, velocity, angle)
-
-
-    def add_circle(self, pos, vel):
+    def add_circle(self, pos, vel, radius=5):
         pos = self.renderer.to_world_frame(pos)
         vel = (self.renderer.pixels_to_meters(vel[0]), -self.renderer.pixels_to_meters(vel[1]))
         circle = self.world.CreateDynamicBody(position=pos)
-        fixture_def = Box2D.b2FixtureDef(shape=(Box2D.b2CircleShape(radius=5)), density=1, friction=0, restitution=1)
+        fixture_def = Box2D.b2FixtureDef(shape=(Box2D.b2CircleShape(radius=radius)), density=1, friction=0, restitution=1)
         circle.CreateFixture(fixture_def)
         circle.linearVelocity = vel
         circle.userData = BouncingBalls.BodyData("circle")
 
 
-    def add_rand_circle(self, mean_vel=5000):
+    def add_rand_circle(self, mean_vel=5000, radius=5):
         position = self.get_rand_pos()
         velocity = get_rand_vel(mean_vel)
-        self.add_circle(position, velocity)
+        self.add_circle(position, velocity, radius)
 
 
     def step(self):

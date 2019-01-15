@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import math, os
 import argparse
+from typing import Union, Tuple
 
 import numpy as np
 from random import random
@@ -11,21 +12,39 @@ from .video_writer import BufferedBinaryWriter
 from .render import VideoRenderer, Channels
 
 
+
+ArrayLike = Union[np.array, list, tuple]
+
+
 # ------------------ Constants ----------------------------------
 
 class Config:
 
-    train = 'train'
-    test  = 'test'
-    valid = 'validation'
+    TRAIN = 'train'
+    TEST  = 'test'
+    VALID = 'validation'
 
-    def __init__(self, sequences, sequence_len, occlusion, balls, data_dir, mean_vel=5000, 
-                 dof=2, screen_height=48, screen_width=64, channels_ordering=Channels.FIRST, save_metadata=True):
+    def __init__(self, sequences: int, sequence_len: int, occlusion: bool, 
+                 balls: int, data_dir: os.path, balls_radius: int=5, 
+                 mean_vel: int=5000, dof: int=2, screen_height: int=48, 
+                 screen_width: int=64, channels_ordering: Channels=Channels.FIRST, 
+                 save_metadata: bool=True):
+        
+        assert sequences >= 0
+        assert sequence_len >= 0
+        assert balls >= 0
+        assert balls_radius > 0
+        assert mean_vel >= 0
+        assert dof == 1 or dof == 2
+        assert screen_height > 0
+        assert screen_width > 0
+
         self.sequences     = sequences
         self.sequence_len  = sequence_len
         self.occlusion     = occlusion
         self.balls         = balls
-        self.data_dir      = data_dir if data_dir is not None else 'data'
+        self.balls_radius  = balls_radius
+        self.data_dir      = data_dir if data_dir is not None else os.path('data')
         self.mean_vel      = mean_vel
         self.dof           = dof
         self.screen_height = screen_height
@@ -36,16 +55,17 @@ class Config:
 
 # ------------------ Function definitions ------------------------
 
-def exists_and_isdir(path):
+def exists_and_isdir(path: os.path) -> bool:
     return os.path.exists(path) and os.path.isdir(path)
 
-def get_angle(vect1, vect2):
+def get_angle(vect1: ArrayLike, vect2: ArrayLike) -> float:
     """ Returns the angle (in radians) between two given vectors """
     return math.acos(np.dot(vect1, vect2) / (np.linalg.norm(vect1) * np.linalg.norm(vect2)))
 
 
-def random_trajectory_through_rectangle(init_pos, rect):
-    """ Returns a random unit norm vector defining the trajectory
+def random_trajectory_through_rectangle(init_pos: ArrayLike, rect: ArrayLike) -> Tuple[float, float]:
+    """ 
+        Returns a random unit norm vector defining the trajectory
         that starts from point initPos and intersects with the rectangle rect
     """
 
@@ -97,10 +117,15 @@ def random_trajectory_through_rectangle(init_pos, rect):
     return (math.cos(rand_angle), math.sin(rand_angle))
 
 
-def random_pos_outside_rectangle(screen_height, screen_width, rect):
-    """ Returns a random position, (x,y) tuple, such that (x,y)
+def random_pos_outside_rectangle(screen_height: int, screen_width: int, 
+                                 rect: ArrayLike) -> Tuple[float, float]:
+    """ 
+        Returns a random position, (x,y) tuple, such that (x,y)
         is not a point inside the rectangle area
     """
+    assert screen_height > 0
+    assert screen_width  > 0
+
     tol = 3
     x = random() * screen_width
     if rect[0] - tol < x < rect[0] + rect[2] + tol:
@@ -113,8 +138,8 @@ def random_pos_outside_rectangle(screen_height, screen_width, rect):
     return x, y
 
 
-def generate_dataset(config, train_or_test, suppress_output):
-    if train_or_test != Config.train and train_or_test != Config.test:
+def generate_dataset(config: Config, train_or_test: str, suppress_output: bool) -> None:
+    if train_or_test != Config.TRAIN and train_or_test != Config.TEST:
         raise ValueError("train_or_test parameter must have one of the two values 'test' or 'train'")
     dataset_dir = os.path.join(config.data_dir, train_or_test)
     if not os.path.exists(dataset_dir): os.mkdir(dataset_dir)
@@ -123,7 +148,7 @@ def generate_dataset(config, train_or_test, suppress_output):
 
     rectangle = (22, 19, 20, 10)
     fps = 60
-    samples = config.sequences if train_or_test == Config.train else config.sequences // 10
+    samples = config.sequences if train_or_test == Config.TRAIN else config.sequences // 10
     frame_per_sequence = config.sequence_len
 
     renderer = VideoRenderer(config.screen_width, config.screen_height, config.channels_ordering)
@@ -161,7 +186,7 @@ def generate_dataset(config, train_or_test, suppress_output):
             np.save(os.path.join(dataset_dir, "metadata.npy"),np.array(metadata))
 
 
-def generate_data(config, suppress_output=True):
+def generate_data(config: Config, suppress_output: bool=True) -> None:
     """ Generates a dataset with the parameters specified by config which is 
         a Config object. 
         
@@ -172,9 +197,9 @@ def generate_data(config, suppress_output=True):
     """
 
     if exists_and_isdir(config.data_dir):  # if dataset already generated do nothing
-        train_dir = os.path.join(config.data_dir, Config.train)
-        test_dir  = os.path.join(config.data_dir, Config.test)
-        valid_dir = os.path.join(config.data_dir, Config.valid)
+        train_dir = os.path.join(config.data_dir, Config.TRAIN)
+        test_dir  = os.path.join(config.data_dir, Config.TEST)
+        valid_dir = os.path.join(config.data_dir, Config.VALID)
         if exists_and_isdir(train_dir) and exists_and_isdir(test_dir) and exists_and_isdir(valid_dir):
             if len(os.listdir(train_dir)) == config.sequences and len(os.listdir(test_dir))  == config.sequences // 10 and len(os.listdir(valid_dir)) == config.sequences // 10:
                 return
@@ -182,14 +207,14 @@ def generate_data(config, suppress_output=True):
         os.mkdir(config.data_dir)
 
     print("Generating training set...")
-    generate_dataset(config, Config.train, suppress_output)
+    generate_dataset(config, Config.TRAIN, suppress_output)
     print("Done!")
     print("Generating validation set...")
-    generate_dataset(config, Config.test, suppress_output)
-    os.rename(os.path.join(config.data_dir, Config.test), os.path.join(config.data_dir, 'validation'))
+    generate_dataset(config, Config.TEST, suppress_output)
+    os.rename(os.path.join(config.data_dir, Config.TEST), os.path.join(config.data_dir, 'validation'))
     print("Done!")
     print("Generating testing set...")
-    generate_dataset(config, Config.test, suppress_output)
+    generate_dataset(config, Config.TEST, suppress_output)
     print("Done!")
 
 
