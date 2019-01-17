@@ -51,7 +51,6 @@ class BouncingBalls():
     def __init__(self):
         self._environment = None
         self._config = Config()
-        self._writer = BufferedBinaryWriter()
 
         self._rectangle = (22, 19, 20, 10)
 
@@ -60,43 +59,86 @@ class BouncingBalls():
     def from_config(config: Config):
         bouncing_balls = BouncingBalls()
         bouncing_balls._config = config
-        bouncing_balls.set_renderer(VideoRenderer(config.screen_height, config.screen_width, config.channels_ordering))
+        bouncing_balls.set_renderer(config.screen_height, config.screen_width, config.channels_ordering) \
+                      .set_n_proc(multiprocessing.cpu_count())
 
         return bouncing_balls       
         
 
     def generate(self, train_or_test, suppress_output: bool=True) -> None:
+        self._config.save_metadata = False  # temporaly disabling metadata because it's not thread-safe
+
         dataset_dir = os.path.join(self._config.data_dir, train_or_test)
         if not os.path.exists(dataset_dir): os.mkdir(dataset_dir)
         file_path = os.path.join(dataset_dir, BouncingBalls.FILE_NAME)
 
-        self._generate(dataset_dir, file_path, suppress_output)
+        per_thread_sequences = self._config.sequences // self._n_proc
+        print('Per thread sequences: {}'.format(per_thread_sequences))
+        mod = self._config.sequences % self._n_proc
+        begin = 0
+        threads = []
+        print('Using {} threads'.format(self._n_proc))
+        for th in range(self._n_proc):
+            end = begin + per_thread_sequences
+            if th < mod:
+                end += 1
+            print('Thread {}: generates from {} to {}'.format(th, begin, end))
+            thread = threading.Thread(target=self.thread_function(
+                dataset_dir, file_path, begin, end, suppress_output
+            ))
+            threads.append(thread)
+            begin = end
+
+        for i, thread in enumerate(threads):
+            print('Starting thread {}'.format(i))
+            thread.start()
+
+        for i, thread in enumerate(threads):
+            print('Waiting to join thread {}'.format(i))
+            thread.join()
         
         
-      
-    def _generate(self, dataset_dir: str, file_path: str, suppress_output: bool):
-        with EnvironmentSimulator(self._renderer, self._config.save_metadata) as env:
-            env.fps = BouncingBalls.FPS
-            env.suppress_output(suppress_output)
-            metadata = []
-            for i in range(self._config.sequences):
-                path = file_path + str(i) + BouncingBalls.FILE_EXTENSION
-                env.save_to(path, self._writer)
-                self._setup_environment(env)
-                for _ in range(self._config.sequence_len):
-                    env.step()
+    def thread_function(self, dataset_dir: str, file_path: str, begin: int, end: int, suppress_output: bool):
+        
+        def generate_batch():
+            renderer = VideoRenderer(self._config.screen_width, 
+                                     self._config.screen_height,
+                                     self._config.channels_ordering)
+            writer = BufferedBinaryWriter()
+            with EnvironmentSimulator(renderer, self._config.save_metadata) as env:
+                env.fps = BouncingBalls.FPS
+                env.suppress_output(suppress_output)
+                metadata = []
+                for i in range(begin, end):
+                    path = file_path + str(i) + BouncingBalls.FILE_EXTENSION
+                    env.save_to(path, writer)
+
+                    self._setup_environment(env)
+
+                    for _ in range(self._config.sequence_len):
+                        env.step()
+
+                    if self._config.save_metadata:
+                        metadata.append(env._metadata)
+
+                    env.reset()
+
                 if self._config.save_metadata:
-                    metadata.append(env._metadata)
-                env.reset()
-
-            if self._config.save_metadata:
-                np.save(os.path.join(dataset_dir, "metadata.npy"),np.array(metadata))
+                    np.save(os.path.join(dataset_dir, "metadata.npy"),np.array(metadata))
         
+        return generate_batch
 
 
-    def set_renderer(self, renderer: Renderer):
-        self._renderer = renderer
+    def set_renderer(self, screen_height: int, screen_width: int, channel_ordering: Channels):
+        self._config.screen_height = screen_height
+        self._config.screen_width  = screen_width
+        self._config.channels_ordering = channel_ordering
         return self
+
+    def set_n_proc(self, n_proc: int):
+        self._n_proc = n_proc
+        return self
+
 
     def _setup_environment(self, env: EnvironmentSimulator) -> None:
         if self._config.occlusion:
