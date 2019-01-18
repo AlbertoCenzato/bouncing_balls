@@ -8,9 +8,7 @@ import numpy as np
 from random import random
 
 from .bouncing_balls import BouncingBalls, Config
-from .environment_simulator import EnvironmentSimulator
-from .video_writer import BufferedBinaryWriter
-from .render import VideoRenderer, Channels
+from .render import Channels
 from .utility_functions import exists_and_isdir
 
 
@@ -56,7 +54,7 @@ def generate_data(config: Config, suppress_output: bool=True) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generates bouncing balls dataset.')
-    parser.add_argument('--balls', required=True, type=int, help='number of balls')
+    parser.add_argument('balls', required=True, type=int, nargs='+', help='number of balls')
     parser.add_argument('--sequence_len', required=True, type=int, help='number of frames in the sequence')
     parser.add_argument('--sequences', required=True, type=int, help='number of sequences to generate')
     parser.add_argument('--balls_radius', type=int, default=5, help='radius of the bouncing balls')

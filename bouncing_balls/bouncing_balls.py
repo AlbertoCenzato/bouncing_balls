@@ -1,6 +1,7 @@
 import os
 import multiprocessing, threading
-from random import random
+import random
+from typing import List
 
 import numpy as np
 
@@ -19,7 +20,7 @@ class Config:
     VALID = 'validation'
 
     def __init__(self, sequences: int=0, sequence_len: int=0, occlusion: bool=False, 
-                 balls: int=0, data_dir: str='', balls_radius: int=5, 
+                 balls: List[int]=[], data_dir: str='', balls_radius: int=5, 
                  mean_vel: int=5000, dof: int=2, screen_height: int=48, 
                  screen_width: int=64, channels_ordering: Channels=Channels.FIRST, 
                  save_metadata: bool=True):
@@ -99,16 +100,17 @@ class BouncingBalls():
         return self
 
     def _setup_environment(self, env: EnvironmentSimulator) -> None:
+        balls = random.choice(self._config.balls)
         if self._config.occlusion:
             env.add_rectangular_occlusion(self._rectangle)
-            for _ in range(self._config.balls):
+            for _ in range(balls):
                 vel = np.random.normal(self._config.mean_vel, self._config.mean_vel // 10)
                 position = random_pos_outside_rectangle(self._config.screen_height, self._config.screen_width, self._rectangle)
                 (vx, vy) = random_trajectory_through_rectangle(position, self._rectangle)
                 env.add_circle(position, (vx * vel, vy * vel))
         else:
-            for _ in range(self._config.balls):
+            for _ in range(balls):
                 if self._config.dof == 1:
-                    env.add_circle(env.get_rand_pos(), (2 * 5000 * random() - 5000, 0))
+                    env.add_circle(env.get_rand_pos(), (2 * 5000 * random.random() - 5000, 0))
                 elif self._config.dof == 2:
                     env.add_rand_circle(mean_vel=self._config.mean_vel)
