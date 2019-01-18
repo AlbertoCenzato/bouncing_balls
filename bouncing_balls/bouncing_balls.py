@@ -1,5 +1,5 @@
-import os
-import multiprocessing, threading
+import os, time
+import multiprocessing
 from random import random
 
 import numpy as np
@@ -49,6 +49,7 @@ class BouncingBalls():
     FILE_EXTENSION = '.npy'
 
     def __init__(self):
+        multiprocessing.set_start_method('spawn')
         self._environment = None
         self._config = Config()
 
@@ -72,61 +73,59 @@ class BouncingBalls():
         if not os.path.exists(dataset_dir): os.mkdir(dataset_dir)
         file_path = os.path.join(dataset_dir, BouncingBalls.FILE_NAME)
 
-        per_thread_sequences = self._config.sequences // self._n_proc
-        print('Per thread sequences: {}'.format(per_thread_sequences))
+        #self.generate_batch(dataset_dir, file_path, 0, self._config.sequences, suppress_output)
+
+        per_process_sequences = self._config.sequences // self._n_proc
+        print('Per-process sequences: {}'.format(per_process_sequences))
         mod = self._config.sequences % self._n_proc
         begin = 0
-        threads = []
-        print('Using {} threads'.format(self._n_proc))
-        for th in range(self._n_proc):
-            end = begin + per_thread_sequences
-            if th < mod:
+        processes = []
+        print('Using {} processes'.format(self._n_proc))
+        for proc in range(self._n_proc):
+            end = begin + per_process_sequences
+            if proc < mod:
                 end += 1
-            print('Thread {}: generates from {} to {}'.format(th, begin, end))
-            thread = threading.Thread(target=self.thread_function(
-                dataset_dir, file_path, begin, end, suppress_output
-            ))
-            threads.append(thread)
+            print('Process {}: generates from {} to {}'.format(proc, begin, end-1))
+            process = multiprocessing.Process(
+                target=self.generate_batch, 
+                args=(dataset_dir, file_path, begin, end, suppress_output)
+            )
+            processes.append(process)
             begin = end
 
-        for i, thread in enumerate(threads):
-            print('Starting thread {}'.format(i))
-            thread.start()
+        for i, process in enumerate(processes):
+            print('Starting process {}'.format(i))
+            process.start()
 
-        for i, thread in enumerate(threads):
-            print('Waiting to join thread {}'.format(i))
-            thread.join()
+        print('Main process waiting...')
+        time.sleep(30)
+        print('Main process resumed')
+
+        for i, process in enumerate(processes):
+            print('Waiting to join process {}'.format(i))
+            process.join()
         
         
-    def thread_function(self, dataset_dir: str, file_path: str, begin: int, end: int, suppress_output: bool):
-        
-        def generate_batch():
-            renderer = VideoRenderer(self._config.screen_width, 
-                                     self._config.screen_height,
-                                     self._config.channels_ordering)
-            writer = BufferedBinaryWriter()
-            with EnvironmentSimulator(renderer, self._config.save_metadata) as env:
-                env.fps = BouncingBalls.FPS
-                env.suppress_output(suppress_output)
-                metadata = []
-                for i in range(begin, end):
-                    path = file_path + str(i) + BouncingBalls.FILE_EXTENSION
-                    env.save_to(path, writer)
-
-                    self._setup_environment(env)
-
-                    for _ in range(self._config.sequence_len):
-                        env.step()
-
-                    if self._config.save_metadata:
-                        metadata.append(env._metadata)
-
-                    env.reset()
-
+    def generate_batch(self, dataset_dir: str, file_path: str, begin: int, end: int, suppress_output: bool):
+        renderer = VideoRenderer(self._config.screen_width, 
+                                 self._config.screen_height,
+                                 self._config.channels_ordering)
+        writer = BufferedBinaryWriter()
+        with EnvironmentSimulator(renderer, self._config.save_metadata) as env:
+            env.fps = BouncingBalls.FPS
+            env.suppress_output(suppress_output)
+            metadata = []
+            for i in range(begin, end):
+                path = file_path + str(i) + BouncingBalls.FILE_EXTENSION
+                env.save_to(path, writer)
+                self._setup_environment(env)
+                for _ in range(self._config.sequence_len):
+                    env.step()
                 if self._config.save_metadata:
-                    np.save(os.path.join(dataset_dir, "metadata.npy"),np.array(metadata))
-        
-        return generate_batch
+                    metadata.append(env._metadata)
+                env.reset()
+            if self._config.save_metadata:
+                np.save(os.path.join(dataset_dir, "metadata.npy"),np.array(metadata))
 
 
     def set_renderer(self, screen_height: int, screen_width: int, channel_ordering: Channels):

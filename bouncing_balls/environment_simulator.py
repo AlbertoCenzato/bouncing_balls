@@ -1,7 +1,7 @@
 from typing import Tuple
 import math, random
 
-import pygame
+#import pygame
 import Box2D
 
 from .video_writer import Writer
@@ -44,7 +44,7 @@ class EnvironmentSimulator():
 
         # --- pybox2D setup ---
         self._world = Box2D.b2World(gravity=(0, 0), doSleep=True)
-        self._clock = pygame.time.Clock()
+        #self._clock = pygame.time.Clock()
 
         # --- pygame setup ---
         self._screenOutput = True
@@ -169,9 +169,9 @@ class EnvironmentSimulator():
         self._world.Step(self._timeStep, 10, 10)
 
         # Try to keep at the target FPS
-        if self._renderer.is_visible:
-            self._clock.tick(self._fps)
-            return self._clock.get_time()
+        #if self._renderer.is_visible:
+        #    self._clock.tick(self._fps)
+        #    return self._clock.get_time()
 
         # self.clock.tick()
         return self._timeStep * 1000
@@ -193,13 +193,13 @@ class EnvironmentSimulator():
         self._create_screen_bounding_box()
         if self._save:
             self._writer.close()
-        self._clock = pygame.time.Clock()
+        #self._clock = pygame.time.Clock()
         self._renderer.reset()
         self._metadata = []
 
 
     def quit(self) -> None:
-        pygame.quit()
+        #pygame.quit()
         if self._save:
             self._writer.close()
 
