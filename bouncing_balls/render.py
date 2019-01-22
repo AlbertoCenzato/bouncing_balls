@@ -23,25 +23,38 @@ def center_of_mass(point_list: List[Point2f]):
     return center / len(point_list)
 
 
-def draw_horizontal_line(image, y, x_begin, x_end):
+def draw_horizontal_line(image: np.array, y: int, x_begin: int, x_end: int,
+                         max_x: int, max_y: int) -> None:
+    if y < 0: 
+        y = 0
+    if y >= max_y:
+        y = max_y - 1
+    if x_begin < 0:
+        x_begin = 0
+    if x_begin >= max_x:
+        x_begin = max_x - 1
+    if x_end < 0:
+        x_end = 0
+    if x_end >= max_x:
+        x_end = max_x - 1
+    
     image[y, x_begin:x_end+1] = 1.0
 
 
-def symmetry_points(image, x, y, x_0, y_0):
-    draw_horizontal_line(image, x+x_0, y+y_0)
-    draw_horizontal_line(image,-x+x_0, y+y_0)
-    draw_horizontal_line(image, x+x_0,-y+y_0)
-    draw_horizontal_line(image,-x+x_0,-y+y_0)
-    draw_horizontal_line(image, y+x_0, x+y_0)
-    draw_horizontal_line(image,-y+x_0, x+y_0)
-    draw_horizontal_line(image, y+x_0,-x+y_0)
-    draw_horizontal_line(image,-y+x_0,-x+y_0)
+def symmetry_points(image: np.array, x: int, y: int, 
+                    x_0: int, y_0: int,
+                    max_x: int, max_y: int) -> None:
+    draw_horizontal_line(image, y+y_0, x-x_0, x+x_0, max_x, max_y)
+    draw_horizontal_line(image, y-y_0, x-x_0, x+x_0, max_x, max_y)
+    draw_horizontal_line(image, x+x_0, y-y_0, y+y_0, max_x, max_y)
+    draw_horizontal_line(image, x-x_0, y-y_0, y+y_0, max_x, max_y)
 
 
-def plotCircle(image, radius, x_0, y_0):
+def plot_circle(image: np.array, radius: int, x_0: int, y_0: int) -> None:
+    max_x, max_y = image.shape[1], image.shape[0]
     x, y = 0, radius
     d = 5/4.0 - radius
-    symmetry_points(image, x, y, x_0, y_0)
+    symmetry_points(image, x, y, x_0, y_0, max_x, max_y)
     while x < y:
         if d < 0:
             x += 1
@@ -50,7 +63,7 @@ def plotCircle(image, radius, x_0, y_0):
             x += 1
             y -= 1
             d += 2*(x-y) + 1
-        symmetry_points(image, x, y, x_0, y_0)
+        symmetry_points(image, x, y, x_0, y_0, max_x, max_y)
 
 
 def draw_circle(image: np.array, center: Point2i, radius: int, channel_order: Channels) -> None:
@@ -153,8 +166,9 @@ class VideoRenderer(Renderer):
                         pass
                     elif isinstance(shape, Box2D.b2CircleShape):
                         center = self.to_screen_frame(body.position)
-                        draw_circle(screen, center, self.meters_to_pixels(shape.radius), 
-                                    self._channel_ordering)
+                        #draw_circle(screen, center, self.meters_to_pixels(shape.radius), 
+                        #            self._channel_ordering)
+                        plot_circle(screen, self.meters_to_pixels(shape.radius), center[0], center[1])
 
         return screen
 

@@ -1,5 +1,8 @@
-import os, time
+import os
+import time
 import multiprocessing
+
+from typing import List, Union
 from random import random
 
 import numpy as np
@@ -19,14 +22,14 @@ class Config:
     VALID = 'validation'
 
     def __init__(self, sequences: int=0, sequence_len: int=0, occlusion: bool=False, 
-                 balls: int=0, data_dir: str='', balls_radius: int=5, 
+                 balls: Union[List[int], int]=0, data_dir: str='', balls_radius: int=5, 
                  mean_vel: int=5000, dof: int=2, screen_height: int=48, 
                  screen_width: int=64, channels_ordering: Channels=Channels.FIRST, 
                  save_metadata: bool=True):
         self.sequences     = sequences
         self.sequence_len  = sequence_len
         self.occlusion     = occlusion
-        self.balls         = balls
+        self.balls         = balls if isinstance(balls, list) else [balls]
         self.balls_radius  = balls_radius
         self.data_dir      = data_dir if data_dir is not None else 'data'
         self.mean_vel      = mean_vel
@@ -49,7 +52,9 @@ class BouncingBalls():
     FILE_EXTENSION = '.npy'
 
     def __init__(self):
-        multiprocessing.set_start_method('spawn')
+        if multiprocessing.get_start_method() != 'spawn':
+            multiprocessing.set_start_method('spawn')
+
         self._environment = None
         self._config = Config()
 
@@ -73,8 +78,6 @@ class BouncingBalls():
         if not os.path.exists(dataset_dir): os.mkdir(dataset_dir)
         file_path = os.path.join(dataset_dir, BouncingBalls.FILE_NAME)
 
-        #self.generate_batch(dataset_dir, file_path, 0, self._config.sequences, suppress_output)
-
         per_process_sequences = self._config.sequences // self._n_proc
         print('Per-process sequences: {}'.format(per_process_sequences))
         mod = self._config.sequences % self._n_proc
@@ -97,16 +100,13 @@ class BouncingBalls():
             print('Starting process {}'.format(i))
             process.start()
 
-        print('Main process waiting...')
-        time.sleep(30)
-        print('Main process resumed')
-
         for i, process in enumerate(processes):
             print('Waiting to join process {}'.format(i))
             process.join()
         
         
-    def generate_batch(self, dataset_dir: str, file_path: str, begin: int, end: int, suppress_output: bool):
+    def generate_batch(self, dataset_dir: str, file_path: str,
+                       begin: int, end: int, suppress_output: bool) -> None:
         renderer = VideoRenderer(self._config.screen_width, 
                                  self._config.screen_height,
                                  self._config.channels_ordering)
@@ -142,13 +142,13 @@ class BouncingBalls():
     def _setup_environment(self, env: EnvironmentSimulator) -> None:
         if self._config.occlusion:
             env.add_rectangular_occlusion(self._rectangle)
-            for _ in range(self._config.balls):
+            for _ in self._config.balls:
                 vel = np.random.normal(self._config.mean_vel, self._config.mean_vel // 10)
                 position = random_pos_outside_rectangle(self._config.screen_height, self._config.screen_width, self._rectangle)
                 (vx, vy) = random_trajectory_through_rectangle(position, self._rectangle)
                 env.add_circle(position, (vx * vel, vy * vel))
         else:
-            for _ in range(self._config.balls):
+            for _ in self._config.balls:
                 if self._config.dof == 1:
                     env.add_circle(env.get_rand_pos(), (2 * 5000 * random() - 5000, 0))
                 elif self._config.dof == 2:
