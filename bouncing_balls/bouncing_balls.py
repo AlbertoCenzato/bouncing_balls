@@ -57,6 +57,7 @@ class BouncingBalls():
 
         self._environment = None
         self._config = Config()
+        self._n_proc = 1
 
         self._rectangle = (22, 19, 20, 10)
 
@@ -66,7 +67,7 @@ class BouncingBalls():
         bouncing_balls = BouncingBalls()
         bouncing_balls._config = config
         bouncing_balls.set_renderer(config.screen_height, config.screen_width, config.channels_ordering) \
-                      .set_n_proc(multiprocessing.cpu_count())
+                      .set_n_proc(4)
 
         return bouncing_balls       
         
@@ -78,31 +79,34 @@ class BouncingBalls():
         if not os.path.exists(dataset_dir): os.mkdir(dataset_dir)
         file_path = os.path.join(dataset_dir, BouncingBalls.FILE_NAME)
 
-        per_process_sequences = self._config.sequences // self._n_proc
-        print('Per-process sequences: {}'.format(per_process_sequences))
-        mod = self._config.sequences % self._n_proc
-        begin = 0
-        processes = []
-        print('Using {} processes'.format(self._n_proc))
-        for proc in range(self._n_proc):
-            end = begin + per_process_sequences
-            if proc < mod:
-                end += 1
-            print('Process {}: generates from {} to {}'.format(proc, begin, end-1))
-            process = multiprocessing.Process(
-                target=self.generate_batch, 
-                args=(dataset_dir, file_path, begin, end, suppress_output)
-            )
-            processes.append(process)
-            begin = end
+        if self._n_proc == 1:
+            self.generate_batch(dataset_dir, file_path, 0, self._config.sequences, suppress_output)
+        else:
+            per_process_sequences = self._config.sequences // self._n_proc
+            print('Per-process sequences: {}'.format(per_process_sequences))
+            mod = self._config.sequences % self._n_proc
+            begin = 0
+            processes = []
+            print('Using {} processes'.format(self._n_proc))
+            for proc in range(self._n_proc):
+                end = begin + per_process_sequences
+                if proc < mod:
+                    end += 1
+                print('Process {}: generates from {} to {}'.format(proc, begin, end-1))
+                process = multiprocessing.Process(
+                    target=self.generate_batch, 
+                    args=(dataset_dir, file_path, begin, end, suppress_output)
+                )
+                processes.append(process)
+                begin = end
 
-        for i, process in enumerate(processes):
-            print('Starting process {}'.format(i))
-            process.start()
+            for i, process in enumerate(processes):
+                print('Starting process {}'.format(i))
+                process.start()
 
-        for i, process in enumerate(processes):
-            print('Waiting to join process {}'.format(i))
-            process.join()
+            for i, process in enumerate(processes):
+                print('Waiting to join process {}'.format(i))
+                process.join()
         
         
     def generate_batch(self, dataset_dir: str, file_path: str,
