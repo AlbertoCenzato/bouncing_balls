@@ -1,9 +1,9 @@
 import os
 import time
 import multiprocessing
+import random
 
 from typing import List, Union
-from random import random
 
 import numpy as np
 
