@@ -23,6 +23,36 @@ def center_of_mass(point_list: List[Point2f]):
     return center / len(point_list)
 
 
+def draw_horizontal_line(image, y, x_begin, x_end):
+    image[y, x_begin:x_end+1] = 1.0
+
+
+def symmetry_points(image, x, y, x_0, y_0):
+    draw_horizontal_line(image, x+x_0, y+y_0)
+    draw_horizontal_line(image,-x+x_0, y+y_0)
+    draw_horizontal_line(image, x+x_0,-y+y_0)
+    draw_horizontal_line(image,-x+x_0,-y+y_0)
+    draw_horizontal_line(image, y+x_0, x+y_0)
+    draw_horizontal_line(image,-y+x_0, x+y_0)
+    draw_horizontal_line(image, y+x_0,-x+y_0)
+    draw_horizontal_line(image,-y+x_0,-x+y_0)
+
+
+def plotCircle(image, radius, x_0, y_0):
+    x, y = 0, radius
+    d = 5/4.0 - radius
+    symmetry_points(image, x, y, x_0, y_0)
+    while x < y:
+        if d < 0:
+            x += 1
+            d += 2*x + 1
+        else:
+            x += 1
+            y -= 1
+            d += 2*(x-y) + 1
+        symmetry_points(image, x, y, x_0, y_0)
+
+
 def draw_circle(image: np.array, center: Point2i, radius: int, channel_order: Channels) -> None:
     canvas = image[0,:,:] if channel_order is Channels.FIRST else image[:,:,0]
     height = canvas.shape[0]
