@@ -8,6 +8,9 @@ import numpy as np
 
 # typedefs
 ArrayLike = Union[np.array, list, tuple]
+Point2i = Tuple[int, int]
+Point2f = Tuple[float, float]
+Point = Union[Point2i, Point2f]
 
 
 
@@ -92,3 +95,7 @@ def random_pos_outside_rectangle(screen_height: int, screen_width: int,
     else:
         y = random() * screen_height
     return x, y
+
+
+def distance(p1: Point, p2: Point) -> float:
+    return math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)

@@ -1,19 +1,83 @@
-import pygame, Box2D
-import numpy as np
-import cv2
+import abc
+from typing import Tuple, List
 from enum import Enum
 
+import numpy as np
 
-def center_of_mass(point_list):
+import Box2D
+import cv2
+
+from .utility_functions import Point, Point2f, Point2i, distance
+
+
+class Channels(Enum):
+    FIRST = 1
+    LAST  = 2
+
+
+
+def center_of_mass(point_list: List[Point2f]):
     center = np.zeros((2,))
     for point in point_list:
         center += point
     return center / len(point_list)
 
 
-class Channels(Enum):
-    FIRST = 1
-    LAST  = 2
+def draw_horizontal_line(image: np.array, y: int, x_begin: int, x_end: int,
+                         max_x: int, max_y: int) -> None:
+    if y < 0: 
+        y = 0
+    if y >= max_y:
+        y = max_y - 1
+    if x_begin < 0:
+        x_begin = 0
+    if x_begin >= max_x:
+        x_begin = max_x - 1
+    if x_end < 0:
+        x_end = 0
+    if x_end >= max_x:
+        x_end = max_x - 1
+    
+    image[y, x_begin:x_end+1] = 1.0
+
+
+def symmetry_points(image: np.array, x: int, y: int, 
+                    x_0: int, y_0: int,
+                    max_x: int, max_y: int) -> None:
+    draw_horizontal_line(image, y+y_0, x-x_0, x+x_0, max_x, max_y)
+    draw_horizontal_line(image, y-y_0, x-x_0, x+x_0, max_x, max_y)
+    draw_horizontal_line(image, x+x_0, y-y_0, y+y_0, max_x, max_y)
+    draw_horizontal_line(image, x-x_0, y-y_0, y+y_0, max_x, max_y)
+
+
+def plot_circle(image: np.array, radius: int, x_0: int, y_0: int) -> None:
+    max_x, max_y = image.shape[1], image.shape[0]
+    x, y = 0, radius
+    d = 5/4.0 - radius
+    symmetry_points(image, x, y, x_0, y_0, max_x, max_y)
+    while x < y:
+        if d < 0:
+            x += 1
+            d += 2*x + 1
+        else:
+            x += 1
+            y -= 1
+            d += 2*(x-y) + 1
+        symmetry_points(image, x, y, x_0, y_0, max_x, max_y)
+
+
+def draw_circle(image: np.array, center: Point2i, radius: int, channel_order: Channels) -> None:
+    canvas = image[0,:,:] if channel_order is Channels.FIRST else image[:,:,0]
+    height = canvas.shape[0]
+    width_range = range(canvas.shape[1])
+    x, y = center
+    sqr_rad = radius**2
+    for i in range(height):
+        y_dist = (i - y)**2
+        for j in width_range:
+            sqr_dist = (j - x)**2 + y_dist
+            if sqr_dist <= sqr_rad:
+                canvas[i,j] = 1.0
 
 
 class Renderer(object):
@@ -23,110 +87,107 @@ class Renderer(object):
     # so define a conversion factor:
     PPM = 1.0  # pixels per meter
 
-    def __init__(self, screen_width, screen_height):
-        self.screen_width_px  = screen_width
-        self.screen_height_px = screen_height
+    def __init__(self, width: int, height: int):
+        self.screen_width_px  = width
+        self.screen_height_px = height
         self.screen = None
         self._visible = True
 
     @staticmethod
-    def pixels_to_meters(pixels):
+    def pixels_to_meters(pixels: int) -> float:
         return pixels / Renderer.PPM
 
     @staticmethod
-    def meters_to_pixels(meters):
+    def meters_to_pixels(meters: float) -> float:
         return int(meters * Renderer.PPM)
 
-    @property
-    def is_visible(self):
-        return self._visible
+    #@property
+    #def is_visible(self):
+    #    return self._visible
 
-    @is_visible.setter
-    def is_visible(self, visible):
-        self._visible = visible
+    #@is_visible.setter
+    #def is_visible(self, visible):
+    #    self._visible = visible
 
-    def to_world_frame(self, point):
+    def to_world_frame(self, point: Point2i) -> Point2f:
         return Renderer.pixels_to_meters(point[0]), Renderer.pixels_to_meters(self.screen_height_px - point[1])
 
-    def to_screen_frame(self, point):
+    def to_screen_frame(self, point: Point2f) -> Point2i:
         return Renderer.meters_to_pixels(point[0]), self.screen_height_px - Renderer.meters_to_pixels(point[1])
 
-    def get_frame(self, world):
+    @abc.abstractmethod
+    def get_frame(self, world: Box2D.b2World) -> np.array:
         pass
 
-    def reset(self):
+    @abc.abstractmethod
+    def reset(self) -> None:
         pass
 
 
 class VideoRenderer(Renderer):
     """ This class has the role of rendering the simulated physical world. """
 
-    COLOR_WHITE = (255, 255, 255, 255)
-    COLOR_BLACK = (0, 0, 0, 0)
+    #COLOR_WHITE = (255, 255, 255, 255)
+    #COLOR_BLACK = (0, 0, 0, 0)
 
-    def __init__(self, screen_width, screen_height, channel_ordering):
-        """ Args:
-             - screen_width:  width (in pixels) of the rendered scene
-             - screen_height: heigth (in pixels) of the rendered scene
-             - channel_ordering: Channel enum specifying if get_frame() returns
-                                 (channels, height, width) images or
-                                 (height, width, channels) images
+    def __init__(self, width: int, height: int, channel_ordering: Channels):
+        """ 
+            Args:
+             @width:  width (in pixels) of the rendered scene
+             @height: heigth (in pixels) of the rendered scene
+             @channel_ordering: Channel enum specifying if get_frame() returns
+                                (channels, height, width) images or
+                                (height, width, channels) images
         """
-        super(VideoRenderer, self).__init__(screen_width, screen_height)
-        self.channel_ordering = channel_ordering
-        self.screen = pygame.display.set_mode((screen_width, screen_height), 0, 32)
-        pygame.display.set_caption('Simple pygame example')
+        super(VideoRenderer, self).__init__(width, height)
+        self._channel_ordering = channel_ordering
+        self._screen_shape = (1, height, width) if channel_ordering is Channels.FIRST else (height, width, 1)
 
-    @Renderer.is_visible.setter
-    def is_visible(self, visible):
-        if not visible:
-            pygame.display.iconify()
-        Renderer.is_visible.fset(self, visible)
+    #@Renderer.is_visible.setter
+    #def is_visible(self, visible: bool):
+    #    if not visible:
+    #        pygame.display.iconify()
+    #    Renderer.is_visible.fset(self, visible)
 
-    def get_frame(self, world):
-        self.reset()
+    def get_frame(self, world: Box2D.b2World) -> np.array:
+        screen = np.zeros(self._screen_shape)
 
         # Draw the world
         for body in world.bodies:
             # The body gives us the position and angle of its shapes
             if body.userData.visible:
                 for fixture in body.fixtures:
-                    # The fixture holds information like density and friction,
-                    # and also the shape.
+                    # The fixture holds information like density, friction and shape
                     shape = fixture.shape
 
                     if isinstance(shape, Box2D.b2PolygonShape):
-                        vertices = [self.to_screen_frame(body.transform * v) for v in shape.vertices]
-                        pygame.draw.polygon(self.screen, self.COLOR_WHITE, vertices)
+                        pass
                     elif isinstance(shape, Box2D.b2EdgeShape):
-                        vertices = [self.to_screen_frame(body.transform * v) for v in shape.vertices]
-                        pygame.draw.line(self.screen, self.COLOR_WHITE, vertices[0], vertices[1])
+                        pass
                     elif isinstance(shape, Box2D.b2CircleShape):
                         center = self.to_screen_frame(body.position)
-                        pygame.draw.circle(self.screen, self.COLOR_WHITE, center, self.meters_to_pixels(shape.radius))
+                        #draw_circle(screen, center, self.meters_to_pixels(shape.radius), 
+                        #            self._channel_ordering)
+                        plot_circle(screen, self.meters_to_pixels(shape.radius), center[0], center[1])
 
-        if self.is_visible:
-            pygame.display.flip()
+        return screen
 
-        array = np.frombuffer(self.screen.get_buffer(), dtype='uint8')
-        image = np.reshape(array, (self.screen_height_px, self.screen_width_px, 4))
-        image_shape = (self.screen_height_px, self.screen_width_px, 1) if self.channel_ordering == Channels.LAST else (1, self.screen_height_px, self.screen_width_px)
-        return np.reshape(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), image_shape)
 
-    def reset(self):
-        self.screen.fill(self.COLOR_BLACK)
+    def reset(self) -> None:
+        pass
 
 
 class CentroidVideoRenderer(Renderer):
 
-    def __init__(self, screen_width, screen_height):
-        super(CentroidVideoRenderer, self).__init__(screen_width, screen_height)
-        self.downsampling = 0
+    def __init__(self, width: int, height: int):
+        super(CentroidVideoRenderer, self).__init__(width, height)
+        self.downsampling = 0.0
 
-    def get_frame(self, world):
+
+    def get_frame(self, world: Box2D.b2World) -> np.array:
 
         if self.downsampling == 0:
-            self.downsampling = self.__compute_downsampling_factor(world)
+            self.downsampling = self._compute_downsampling_factor(world)
 
         self.reset()
 
@@ -141,17 +202,17 @@ class CentroidVideoRenderer(Renderer):
 
                     if isinstance(shape, Box2D.b2CircleShape):
                         center = self.to_screen_frame(body.position)
-                        center = self.__fit_in_screen(center)
+                        center = self._fit_in_screen(center)
                         self.screen[center[0], center[1]] = 255
                     elif isinstance(shape, Box2D.b2PolygonShape) or isinstance(shape, Box2D.b2EdgeShape):
                         vertices = [body.transform * v for v in shape.vertices]
                         center = self.to_screen_frame(center_of_mass(vertices))
-                        center = self.__fit_in_screen(center)
+                        center = self._fit_in_screen(center)
                         self.screen[center[0], center[1]] = 255
 
         return self.screen
 
-    def __compute_downsampling_factor(self, world):
+    def _compute_downsampling_factor(self, world: Box2D.b2World) -> float:
         # for body in world.bodies:
         #  if body.userData.visible:
         #     for fixture in body.fixtures:
@@ -161,7 +222,7 @@ class CentroidVideoRenderer(Renderer):
         # raise LookupError("World contains no circle!")
         return 1.0 / 8.0
 
-    def __fit_in_screen(self, point):
+    def _fit_in_screen(self, point: Point2i) -> Point2i:
         x, y = point
         if x < 0:
             x = 0
@@ -173,11 +234,11 @@ class CentroidVideoRenderer(Renderer):
             y = int(self.screen_width_px * self.downsampling) - 1
         return x, y
 
-    def to_screen_frame(self, point):
+    def to_screen_frame(self, point: Point2i) -> Point2i:
         point = super(CentroidVideoRenderer, self).to_screen_frame(point)
         return int(point[1] * self.downsampling), int(point[0] * self.downsampling)
 
-    def reset(self):
+    def reset(self) -> None:
         if self.downsampling == 0:
             return
         self.screen = np.zeros((int(self.screen_height_px * self.downsampling),
@@ -186,12 +247,12 @@ class CentroidVideoRenderer(Renderer):
 
 class PositionAndVelocityExtractor(Renderer):
 
-    def __init__(self, screen_width, screen_height):
-        super(PositionAndVelocityExtractor, self).__init__(screen_width, screen_height)
+    def __init__(self, width: int, height: int):
+        super(PositionAndVelocityExtractor, self).__init__(width, height)
         self.screen = np.zeros((0, 4), dtype=np.float32)
         self.is_visible = False
 
-    def get_frame(self, world):
+    def get_frame(self, world: Box2D.b2World) -> np.array:
         """ FIXME! This function works only in some specific conditions """
         self.reset()
 
@@ -218,5 +279,5 @@ class PositionAndVelocityExtractor(Renderer):
 
         return self.screen
 
-    def reset(self):
+    def reset(self) -> None:
         self.screen = np.zeros_like(self.screen)
