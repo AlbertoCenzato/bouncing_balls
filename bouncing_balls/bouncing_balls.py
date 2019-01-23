@@ -147,13 +147,13 @@ class BouncingBalls():
         balls = random.choice(self._config.balls)
         if self._config.occlusion:
             env.add_rectangular_occlusion(self._rectangle)
-            for _ in self._config.balls:
+            for _ in range(balls):
                 vel = np.random.normal(self._config.mean_vel, self._config.mean_vel // 10)
                 position = random_pos_outside_rectangle(self._config.screen_height, self._config.screen_width, self._rectangle)
                 (vx, vy) = random_trajectory_through_rectangle(position, self._rectangle)
                 env.add_circle(position, (vx * vel, vy * vel))
         else:
-            for _ in self._config.balls:
+            for _ in range(balls):
                 if self._config.dof == 1:
                     env.add_circle(env.get_rand_pos(), (2 * 5000 * random.random() - 5000, 0))
                 elif self._config.dof == 2:

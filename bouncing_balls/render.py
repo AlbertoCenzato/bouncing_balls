@@ -3,6 +3,7 @@ from typing import Tuple, List
 from enum import Enum
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import Box2D
 import cv2
@@ -44,10 +45,10 @@ def draw_horizontal_line(image: np.array, y: int, x_begin: int, x_end: int,
 def symmetry_points(image: np.array, x: int, y: int, 
                     x_0: int, y_0: int,
                     max_x: int, max_y: int) -> None:
-    draw_horizontal_line(image, y+y_0, x-x_0, x+x_0, max_x, max_y)
-    draw_horizontal_line(image, y-y_0, x-x_0, x+x_0, max_x, max_y)
-    draw_horizontal_line(image, x+x_0, y-y_0, y+y_0, max_x, max_y)
-    draw_horizontal_line(image, x-x_0, y-y_0, y+y_0, max_x, max_y)
+    draw_horizontal_line(image, y_0+y, x_0-x, x_0+x, max_x, max_y)
+    draw_horizontal_line(image, y_0-y, x_0-x, x_0+x, max_x, max_y)
+    draw_horizontal_line(image, y_0+x, x_0-y, x_0+y, max_x, max_y)
+    draw_horizontal_line(image, y_0-x, x_0-y, x_0+y, max_x, max_y)
 
 
 def plot_circle(image: np.array, radius: int, x_0: int, y_0: int) -> None:
@@ -64,20 +65,6 @@ def plot_circle(image: np.array, radius: int, x_0: int, y_0: int) -> None:
             y -= 1
             d += 2*(x-y) + 1
         symmetry_points(image, x, y, x_0, y_0, max_x, max_y)
-
-
-def draw_circle(image: np.array, center: Point2i, radius: int, channel_order: Channels) -> None:
-    canvas = image[0,:,:] if channel_order is Channels.FIRST else image[:,:,0]
-    height = canvas.shape[0]
-    width_range = range(canvas.shape[1])
-    x, y = center
-    sqr_rad = radius**2
-    for i in range(height):
-        y_dist = (i - y)**2
-        for j in width_range:
-            sqr_dist = (j - x)**2 + y_dist
-            if sqr_dist <= sqr_rad:
-                canvas[i,j] = 1.0
 
 
 class Renderer(object):
@@ -168,7 +155,7 @@ class VideoRenderer(Renderer):
                         center = self.to_screen_frame(body.position)
                         #draw_circle(screen, center, self.meters_to_pixels(shape.radius), 
                         #            self._channel_ordering)
-                        plot_circle(screen, self.meters_to_pixels(shape.radius), center[0], center[1])
+                        plot_circle(screen[0,:,:], self.meters_to_pixels(shape.radius), center[0], center[1])
 
         return screen
 
