@@ -6,3 +6,4 @@ bouncing_balls.egg-info/
 build/
 dist/
 .eggs/
+simple_bouncing_balls_generator.py

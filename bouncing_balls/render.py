@@ -56,6 +56,7 @@ def plot_circle(image: np.array, radius: int, x_0: int, y_0: int) -> None:
     x, y = 0, radius
     d = 5/4.0 - radius
     symmetry_points(image, x, y, x_0, y_0, max_x, max_y)
+    #plt.imshow(image)
     while x < y:
         if d < 0:
             x += 1
@@ -65,6 +66,7 @@ def plot_circle(image: np.array, radius: int, x_0: int, y_0: int) -> None:
             y -= 1
             d += 2*(x-y) + 1
         symmetry_points(image, x, y, x_0, y_0, max_x, max_y)
+        #plt.imshow(image)
 
 
 class Renderer(object):

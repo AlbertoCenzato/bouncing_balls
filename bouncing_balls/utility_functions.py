@@ -1,7 +1,7 @@
 import os
 import math
 from random import random
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 
 import numpy as np
 
@@ -99,3 +99,36 @@ def random_pos_outside_rectangle(screen_height: int, screen_width: int,
 
 def distance(p1: Point, p2: Point) -> float:
     return math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
+
+
+def check_generated_data(path: str) -> List[Tuple[bool, str]]:
+    error_list = []
+
+    # check dataset root directory exists
+    if not (os.path.exists(path) and os.path.isdir(path)):
+        error_list.append((False, '{} does not exist or is not a folder'.format(path)))
+
+    # check dataset subdir
+    dirs = [os.path.join(path, d) for d in ['train', 'test', 'validation']]
+    for dir in dirs:
+
+        # check if dataset subdir exists
+        if not (os.path.exists(dir) and os.path.isdir(dir)):
+            error_list.append((False, '{} does not exist or is not a folder'.format(dir)))
+
+        # check if dir is empty
+        files = os.listdir(dir)
+        if len(files) == 0:
+            error_list.append((False, '{} is empty'.format(dir)))
+
+        for file in files:
+            file_path = os.path.join(dir,file)
+            image = np.load(file_path)
+            if not image.any():
+                error_list.append((False, '{} is an empty sequence'.format(file_path)))
+
+    return error_list
+        
+
+
+    

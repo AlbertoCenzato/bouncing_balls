@@ -9,15 +9,15 @@ from random import random
 
 from .bouncing_balls import BouncingBalls, Config
 from .render import Channels
-from .utility_functions import exists_and_isdir
+from .utility_functions import exists_and_isdir, check_generated_data
 
 
-def generate_dataset(config: Config, train_or_test: str, suppress_output: bool) -> None:
+def generate_dataset(config: Config, train_or_test: str, debug: bool) -> None:
     bouncing_balls = BouncingBalls.from_config(config)
-    bouncing_balls.generate(train_or_test, suppress_output)
+    bouncing_balls.generate(train_or_test, debug)
 
 
-def generate_data(config: Config, suppress_output: bool=True) -> None:
+def generate_data(config: Config, debug: bool=False) -> None:
     """ 
         Generates a dataset with the parameters specified by config which is 
         a Config object. 
@@ -39,16 +39,23 @@ def generate_data(config: Config, suppress_output: bool=True) -> None:
         os.mkdir(config.data_dir)
 
     print("Generating training set...")
-    generate_dataset(config, Config.TRAIN, suppress_output)
+    generate_dataset(config, Config.TRAIN, debug)
     print("Done!")
     print("Generating validation set...")
     config.sequences = config.sequences // 10
-    generate_dataset(config, Config.TEST, suppress_output)
+    generate_dataset(config, Config.TEST, debug)
     os.rename(os.path.join(config.data_dir, Config.TEST), os.path.join(config.data_dir, 'validation'))
     print("Done!")
     print("Generating testing set...")
-    generate_dataset(config, Config.TEST, suppress_output)
+    generate_dataset(config, Config.TEST, debug)
     print("Done!")
+
+    errors = check_generated_data(config.data_dir)
+    if len(errors) == 0:
+        print('Dataset ready!')
+    else:
+        for err in errors:
+            print(err[1])
 
 
 
@@ -72,4 +79,4 @@ if __name__ == "__main__":
     config = Config(args.sequences, args.sequence_len, args.occlusion, args.balls, args.data_dir, 
                     screen_height=args.height, screen_width=args.width, channels_ordering=channels_ordering)
     
-    generate_data(config, suppress_output=not args.verbose)
+    generate_data(config, debug=args.verbose)
