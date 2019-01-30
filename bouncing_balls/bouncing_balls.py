@@ -22,7 +22,7 @@ class Config:
     def __init__(self, sequences: int=0, sequence_len: int=0, occlusion: bool=False, 
                  balls: List[int]=[], data_dir: str='', balls_radius: int=5, 
                  mean_vel: int=5000, dof: int=2, screen_height: int=48, 
-                 screen_width: int=64, channels_ordering: Channels=Channels.FIRST, 
+                 screen_width: int=64, channels_ordering: Channels=Channels.LAST, 
                  save_metadata: bool=True):
         self.sequences     = sequences
         self.sequence_len  = sequence_len

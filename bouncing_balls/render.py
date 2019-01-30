@@ -74,8 +74,15 @@ class VideoRenderer(Renderer):
         """
         super(VideoRenderer, self).__init__(screen_width, screen_height)
         self.channel_ordering = channel_ordering
+
+        if self.channel_ordering == Channels.LAST:
+            self.image_shape = (self.screen_height_px, self.screen_width_px, 1)
+        else:
+            self.image_shape = (1, self.screen_height_px, self.screen_width_px)
+
         self.screen = pygame.display.set_mode((screen_width, screen_height), 0, 32)
         pygame.display.set_caption('Simple pygame example')
+
 
     @Renderer.is_visible.setter
     def is_visible(self, visible):
@@ -110,8 +117,9 @@ class VideoRenderer(Renderer):
 
         array = np.frombuffer(self.screen.get_buffer(), dtype='uint8')
         image = np.reshape(array, (self.screen_height_px, self.screen_width_px, 4))
-        image_shape = (self.screen_height_px, self.screen_width_px, 1) if self.channel_ordering == Channels.LAST else (1, self.screen_height_px, self.screen_width_px)
-        return np.reshape(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), image_shape)
+        
+        return np.reshape(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), self.image_shape)
+
 
     def reset(self):
         self.screen.fill(self.COLOR_BLACK)

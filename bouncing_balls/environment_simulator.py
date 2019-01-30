@@ -3,6 +3,7 @@ import math, random
 
 import pygame
 import Box2D
+import cv2
 
 from .video_writer import Writer
 
