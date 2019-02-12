@@ -6,3 +6,4 @@ bouncing_balls.egg-info/
 build/
 dist/
 .eggs/
+.vs/
