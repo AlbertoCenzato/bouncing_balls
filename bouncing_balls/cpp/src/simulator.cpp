@@ -105,21 +105,21 @@ void Simulator::save_to(const fs::path &path, NpyWriter *wrtr) {
 
 
 void Simulator::add_line(const Point2f &p1, const Point2f &p2) {
-    auto p1_m = renderer_->to_world_frame(p1);
-    auto p2_m = renderer_->to_world_frame(p2);
+    auto p1_m = renderer_->to_world_frame(b2Vec2{p1[0], p1[1]});
+    auto p2_m = renderer_->to_world_frame(b2Vec2{p2[0], p2[1]});
 
-    Point2f m{(p1[0] + p2[0]) / 2.0f, (p1[1] + p2[1]) / 2.0f};
+    b2Vec2 m{(p1[0] + p2[0]) / 2.0f, (p1[1] + p2[1]) / 2.0f};
     p1_m -= m; // compute p1 coordinates wrt m
     p2_m -= m; // compute p2 coordinates wrt m
 
     b2BodyDef line_def;
-    line_def.position.Set(m[0], m[1]);
+    line_def.position.Set(m.x, m.y);
     line_def.active = false;
     line_def.userData = create_body_data_("line", false);
     auto line = world_->CreateBody(&line_def);
 
     b2EdgeShape edge_shape;
-    edge_shape.Set({p1_m[0], p1_m[1]}, {p2_m[0], p2_m[1]});
+    edge_shape.Set(p1_m, p2_m);
 
     b2FixtureDef fixture_def;
     fixture_def.shape = &edge_shape;
@@ -132,13 +132,13 @@ void Simulator::add_line(const Point2f &p1, const Point2f &p2) {
 void Simulator::add_rectangular_occlusion(const Rectf & rect) {
     auto width_px  = rect[2];
     auto height_px = rect[3];
-    Point2f center_px(rect[0] + width_px / 2.0f, rect[1] + height_px / 2.0f);
-    Point2f center_m = renderer_->to_world_frame(center_px);
+	b2Vec2 center_px{ rect[0] + width_px / 2.0f, rect[1] + height_px / 2.0f };
+    auto center_m = renderer_->to_world_frame(center_px);
     auto width_m  = renderer_->pixels_to_meters(width_px); 
     auto height_m = renderer_->pixels_to_meters(height_px);
 
     b2BodyDef occlusion_def;
-    occlusion_def.position.Set(center_m[0], center_m[1]);
+    occlusion_def.position.Set(center_m.x, center_m.y);
     occlusion_def.active = false;
     occlusion_def.userData = create_body_data_("rectangular_occlusion", true);
     auto occlusion = world_->CreateBody(&occlusion_def);
@@ -154,17 +154,17 @@ void Simulator::add_rectangular_occlusion(const Rectf & rect) {
 
 
 void Simulator::add_circle(const Point2f &pos_px, const Vector2f &vel_px, float radius) {
-    auto pos_m = renderer_->to_world_frame(pos_px);
+	auto pos_m = renderer_->to_world_frame({ pos_px[0], pos_px[1] });
     b2Vec2 vel_m{renderer_->pixels_to_meters(vel_px[0]), renderer_->pixels_to_meters(vel_px[1])};
 
     b2BodyDef circle_def;
-    circle_def.position.Set(pos_m[0], pos_m[1]);
+    circle_def.position.Set(pos_m.x, pos_m.y);
     circle_def.userData = create_body_data_("circle", true);
     circle_def.linearVelocity = vel_m;
     auto circle = world_->CreateBody(&circle_def);
     
     b2CircleShape shape;
-    shape.m_p.Set(pos_m[0], pos_m[1]);
+    shape.m_p.Set(pos_m.x, pos_m.y);
     shape.m_radius = radius;
 
     circle->CreateFixture(&shape, 1);

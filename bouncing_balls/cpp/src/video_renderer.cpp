@@ -26,15 +26,15 @@ float VideoRenderer::meters_to_pixels(float meters) {
 	return meters * VideoRenderer::PPM;
 }
 
-Point2f VideoRenderer::to_world_frame(const Point2f &point_px) const {
-	auto x = VideoRenderer::pixels_to_meters(point_px[0]);
-	auto y = VideoRenderer::pixels_to_meters(screen_height_px - point_px[1]);
+b2Vec2 VideoRenderer::to_world_frame(const b2Vec2& point_px) const {
+	auto x = VideoRenderer::pixels_to_meters(point_px.x);
+	auto y = VideoRenderer::pixels_to_meters(screen_height_px - point_px.y);
 	return { x, y };
 }
 
-Point2f VideoRenderer::to_screen_frame(const Point2f &point_m) const {
-	auto x = VideoRenderer::meters_to_pixels(point_m[0]);
-	auto y = screen_height_px - VideoRenderer::meters_to_pixels(point_m[1]);
+b2Vec2 VideoRenderer::to_screen_frame(const b2Vec2 & point_m) const {
+	auto x = VideoRenderer::meters_to_pixels(point_m.x);
+	auto y = screen_height_px - VideoRenderer::meters_to_pixels(point_m.y);
 	return { x, y };
 }
 
@@ -65,8 +65,7 @@ cnpy::NpyArray VideoRenderer::get_frame(b2World *world) {
 				break; }
 			case b2Shape::e_circle: {
 				//auto circle = static_cast<b2CricleShape* const>(shape);
-				const auto &center_m = body->GetPosition();
-				const auto center_px = to_screen_frame(Point2f{ center_m.x, center_m.y });
+				const auto center_px = to_screen_frame(body->GetPosition());
 				draw_circle_(center_px, meters_to_pixels(body_data->radius), screen);
 				break; }
             }
@@ -78,17 +77,17 @@ cnpy::NpyArray VideoRenderer::get_frame(b2World *world) {
 
 
 
-void VideoRenderer::draw_polygon_(const std::vector<Point2f> &vertexes, uint8_t *screen) {
+void VideoRenderer::draw_polygon_(const std::vector<b2Vec2>& vertexes, uint8_t *screen) {
     throw NotImplementedException();
 }
 
-void VideoRenderer::draw_edge_(const std::vector<Point2f> &vertexes, uint8_t *screen) {
+void VideoRenderer::draw_edge_(const std::vector<b2Vec2>& vertexes, uint8_t *screen) {
     throw NotImplementedException();
 }
 
-void VideoRenderer::draw_circle_(const Point2f &center, int32_t radius, uint8_t *screen) {
-    int32_t x0 = center[0];
-    int32_t y0 = center[1];
+void VideoRenderer::draw_circle_(const b2Vec2& center, int32_t radius, uint8_t *screen) {
+    auto x0 = int32_t(center.x);
+    auto y0 = int32_t(center.y);
 
     int x = radius-1;
     int y = 0;
@@ -97,14 +96,10 @@ void VideoRenderer::draw_circle_(const Point2f &center, int32_t radius, uint8_t 
     int err = dx - (radius << 1);
 
     while (x >= y) {
-        putpixel_(x0 + x, y0 + y, screen);
-        putpixel_(x0 + y, y0 + x, screen);
-        putpixel_(x0 - y, y0 + x, screen);
-        putpixel_(x0 - x, y0 + y, screen);
-        putpixel_(x0 - x, y0 - y, screen);
-        putpixel_(x0 - y, y0 - x, screen);
-        putpixel_(x0 + y, y0 - x, screen);
-        putpixel_(x0 + x, y0 - y, screen);
+		fill_line_(x0 - x, x0 + x, y0 + y, screen);
+		fill_line_(x0 - x, x0 + x, y0 - y, screen);
+		fill_line_(x0 - y, x0 + y, y0 + x, screen);
+		fill_line_(x0 - y, x0 + y, y0 - x, screen);
 
         if (err <= 0) {
             ++y;
