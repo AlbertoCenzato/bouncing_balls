@@ -10,7 +10,7 @@ namespace bounce {
 const float VideoRenderer::PPM = 1.0f;
 
 
-VideoRenderer::VideoRenderer(int32_t screen_width, int32_t screen_height, Channels channel_ordering) 
+VideoRenderer::VideoRenderer(int32_t screen_height, int32_t screen_width, Channels channel_ordering) 
     : screen_height_px(screen_height), screen_width_px(screen_width), channel_ordering_(channel_ordering)
 { 
 	assert(screen_height_px >= 0 && screen_width_px >= 0);
@@ -93,7 +93,7 @@ void VideoRenderer::draw_circle_(const b2Vec2& center, int32_t radius, uint8_t *
     auto x0 = int32_t(center.x);
     auto y0 = int32_t(center.y);
 
-    int x = radius-1;
+	int x = radius;// -1;
     int y = 0;
     int dx = 1;
     int dy = 1;

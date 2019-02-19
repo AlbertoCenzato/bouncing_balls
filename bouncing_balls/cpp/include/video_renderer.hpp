@@ -34,7 +34,7 @@ public:
      *                     (channels, height, width) images or
      *                     (height, width, channels) images
      */
-    VideoRenderer(int32_t screen_width, int32_t screen_height, Channels channel_ordering);     
+    VideoRenderer(int32_t screen_height, int32_t screen_width, Channels channel_ordering);     
 
 	b2Vec2 to_world_frame(const b2Vec2 &point_px) const;
 	b2Vec2 to_screen_frame(const b2Vec2 &point_m) const;

@@ -9,7 +9,7 @@ int main() {
 
 	auto start = std::chrono::system_clock::now();
 
-	bounce::BouncingBalls::Config config(6000, 40, false, {1, 4});
+	bounce::BouncingBalls::Config config(10, 40, false, {1}, "C:\\Users\\micheluzzo\\Desktop\\data", 5.f);
 	bounce::BouncingBalls bouncing_balls(config);
 
 	bouncing_balls.generate("C:\\Users\\micheluzzo\\Desktop\\data");

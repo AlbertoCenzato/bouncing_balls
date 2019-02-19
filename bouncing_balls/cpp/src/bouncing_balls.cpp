@@ -133,7 +133,7 @@ const std::string BouncingBalls::Config::TEST  = "test";
 const std::string BouncingBalls::Config::VALID = "validation";
 
 BouncingBalls::Config::Config(int sequences, int sequence_len, bool occlusion, const std::vector<int> &balls,
-               const fs::path &data_dir, uint32_t balls_radius, float mean_vel, uint32_t dof, 
+               const fs::path &data_dir, float balls_radius, float mean_vel, uint32_t dof, 
                uint32_t screen_height, uint32_t screen_width, Channels channels_ordering, 
                bool save_metadata)
 {
@@ -220,7 +220,7 @@ void BouncingBalls::setup_environment_(Simulator &env) {
                 env.add_circle(env.get_rand_pos_px(), Vector2f(2 * 5000 * rand_uniform() - 5000, 0));
             }
             else if (config_.dof == 2) {
-                env.add_rand_circle(config_.mean_vel);
+                env.add_rand_circle(config_.mean_vel, config_.balls_radius);
             }
         }
     }

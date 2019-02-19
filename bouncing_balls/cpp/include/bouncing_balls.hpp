@@ -32,7 +32,7 @@ public:
         bool occlusion;
         std::vector<int> balls;
         fs::path data_dir;
-        uint32_t balls_radius;
+        float balls_radius;
         float mean_vel;
         uint32_t dof;
         uint32_t screen_height;
@@ -41,7 +41,7 @@ public:
         bool save_metadata;
 
         Config(int sequences=0, int sequence_len=0, bool occlusion=false, const std::vector<int> &balls={},
-               const fs::path &data_dir="", uint32_t balls_radius=5, float mean_vel=5000.f, uint32_t dof=2, 
+               const fs::path &data_dir="", float balls_radius=5, float mean_vel=5000.f, uint32_t dof=2, 
                uint32_t screen_height=48, uint32_t screen_width=64, Channels channels_ordering=Channels::LAST, 
                bool save_metadata=true);
     };
