@@ -3,7 +3,7 @@
 
 #include <chrono>
 #include <memory>
-#include <vector>
+#include <forward_list>
 #include <filesystem>
 
 #include "common_types.hpp"
@@ -68,9 +68,10 @@ public:
     
 private:
    
-    std::vector<BodyData> body_data_storage_;
-
-    NpyWriter *writer_;
+    std::forward_list<BodyData> body_data_storage_;  // NOTE: using forward_list since we only need to iterate in one direction and
+													 // need a data structure in which a new allocation does not invalidate 
+													 // references to contained objects as std::vector would do. In this way we avoid
+    NpyWriter *writer_;								 // memory management issues or the use of smart pointers
     VideoRenderer *renderer_;
     std::unique_ptr<b2World> world_;
     
@@ -91,7 +92,7 @@ private:
     float screen_height_m_;
 
 
-    BodyData* create_body_data_(const std::string &name, bool visible);
+    BodyData* create_body_data_(const std::string &name, bool visible, float radius);
 
     void create_screen_bounding_box_();
 

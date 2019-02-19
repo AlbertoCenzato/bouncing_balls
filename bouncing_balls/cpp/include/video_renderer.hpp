@@ -21,7 +21,7 @@ public:
 	// Box2D deals with meters, but we want to display pixels,
 	// so define a conversion factor:
 	static const float PPM;  // pixels per meter
-	const uint32_t screen_height_px, screen_width_px;
+	const int32_t screen_height_px, screen_width_px;
 
 	static float pixels_to_meters(float pixels);
 	static float meters_to_pixels(float meters);

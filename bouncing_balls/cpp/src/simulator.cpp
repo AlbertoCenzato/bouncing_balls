@@ -72,9 +72,11 @@ void Simulator::create_screen_bounding_box_() {
     b2ChainShape chain;
     chain.CreateLoop(vs, 4);
 
+	auto circumscribed_circle_radius = std::sqrtf(std::powf(screen_center.x, 2) + std::powf(screen_center.y, 2));
+
     b2BodyDef bounding_box_def;
     bounding_box_def.position.Set(screen_center.x, screen_center.y);
-    bounding_box_def.userData = create_body_data_("world_bounding_box", false);
+    bounding_box_def.userData = create_body_data_("world_bounding_box", false, circumscribed_circle_radius);
     bounding_box_def.active = true;
 
     bounding_box_ = world_->CreateBody(&bounding_box_def);
@@ -115,7 +117,7 @@ void Simulator::add_line(const Point2f &p1, const Point2f &p2) {
     b2BodyDef line_def;
     line_def.position.Set(m.x, m.y);
     line_def.active = false;
-    line_def.userData = create_body_data_("line", false);
+    line_def.userData = create_body_data_("line", false, 0.f);
     auto line = world_->CreateBody(&line_def);
 
     b2EdgeShape edge_shape;
@@ -137,10 +139,12 @@ void Simulator::add_rectangular_occlusion(const Rectf & rect) {
     auto width_m  = renderer_->pixels_to_meters(width_px); 
     auto height_m = renderer_->pixels_to_meters(height_px);
 
+	auto circumscribed_circle_radius = std::sqrtf(std::powf(width_px / 2.0f, 2) + std::powf(height_px / 2.0f, 2));
+
     b2BodyDef occlusion_def;
     occlusion_def.position.Set(center_m.x, center_m.y);
     occlusion_def.active = false;
-    occlusion_def.userData = create_body_data_("rectangular_occlusion", true);
+    occlusion_def.userData = create_body_data_("rectangular_occlusion", true, circumscribed_circle_radius);
     auto occlusion = world_->CreateBody(&occlusion_def);
 
     b2PolygonShape poly;
@@ -159,7 +163,7 @@ void Simulator::add_circle(const Point2f &pos_px, const Vector2f &vel_px, float 
 
     b2BodyDef circle_def;
     circle_def.position.Set(pos_m.x, pos_m.y);
-    circle_def.userData = create_body_data_("circle", true);
+    circle_def.userData = create_body_data_("circle", true, radius);
     circle_def.linearVelocity = vel_m;
     auto circle = world_->CreateBody(&circle_def);
     
@@ -211,13 +215,13 @@ void Simulator::run_simulation(std::chrono::seconds time_s) {
 
 
 void Simulator::reset() {
-    body_data_storage_.empty();
+    body_data_storage_.clear();
 	world_ = std::make_unique<b2World>(b2Vec2(0.0, 0.0));
     create_screen_bounding_box_();
     if (save_)
         writer_->close();
 //    self._renderer.reset()
-    metadata_.empty();
+    metadata_.clear();
 
     set_fps(DEFAULT_FPS);
 }
@@ -253,9 +257,9 @@ void Simulator::quit() {
 //}
 
 
-BodyData* Simulator::create_body_data_(const std::string &name, bool visible) {
-    body_data_storage_.emplace_back(name, visible);
-    return &body_data_storage_.back();
+BodyData* Simulator::create_body_data_(const std::string &name, bool visible, float radius) {
+    body_data_storage_.emplace_front(name, visible, radius);
+    return &body_data_storage_.front();
 }
 
 

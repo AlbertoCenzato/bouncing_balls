@@ -38,7 +38,7 @@ namespace bounce {
 		bool visible;
 		float radius;
 
-		BodyData(const std::string &name, bool visible, float radius = 5)
+		BodyData(const std::string &name, bool visible, float radius = 5.f)
 			: name(name), visible(visible), radius(radius) {}
 	};
 

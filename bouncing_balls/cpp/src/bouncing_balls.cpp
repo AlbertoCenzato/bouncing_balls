@@ -1,6 +1,7 @@
 #include "bouncing_balls.hpp"
 
 #include <assert.h>
+#include <iostream>
 
 #include "Box2D/Box2D.h"
 

@@ -1,6 +1,7 @@
 #include "video_renderer.hpp"
 
 #include <vector>
+#include <cassert>
 
 #include "Box2D/Box2D.h"
 
@@ -12,10 +13,13 @@ const float VideoRenderer::PPM = 1.0f;
 VideoRenderer::VideoRenderer(int32_t screen_width, int32_t screen_height, Channels channel_ordering) 
     : screen_height_px(screen_height), screen_width_px(screen_width), channel_ordering_(channel_ordering)
 { 
+	assert(screen_height_px >= 0 && screen_width_px >= 0);
+	auto h = static_cast<size_t>(screen_height_px);
+	auto w = static_cast<size_t>(screen_width_px);
     if (channel_ordering == Channels::LAST)
-        image_shape_ = {screen_height_px, screen_width_px, 1};
+        image_shape_ = {h, w, size_t(1)};
     else
-        image_shape_ = {1, screen_height_px, screen_width_px};
+        image_shape_ = {1, h, w};
 }
 
 float VideoRenderer::pixels_to_meters(float pixels) {
