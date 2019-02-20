@@ -20,7 +20,7 @@ int main() {
 	std::time_t end_time = std::chrono::system_clock::to_time_t(end);
 
 	std::cout << "finished computation at " << std::ctime(&end_time)
-			<< "elapsed time: " << elapsed_seconds.count() << "s\n";
+			  << "elapsed time: " << elapsed_seconds.count() << "s\n";
 
 	std::this_thread::sleep_for(std::chrono::seconds(15));
 
