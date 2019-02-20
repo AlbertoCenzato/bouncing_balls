@@ -29,7 +29,7 @@ private:
 
 template<class b2Object>
 b2Iterator<b2Object> begin(b2Object *obj) {
-    return b2Iterator(obj);
+    return b2Iterator<b2Object>(obj);
 }
 
 template<class b2Object>

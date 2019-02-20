@@ -6,8 +6,6 @@
 #include "common_types.hpp"
 
 
-namespace fs = std::filesystem;
-
 namespace bounce {
 
 class NpyWriter {

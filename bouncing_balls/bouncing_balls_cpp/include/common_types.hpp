@@ -7,10 +7,19 @@
 
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <filesystem>
 
 #include "cnpy/cnpy.h"
 
 #include "b2Iterator.hpp"
+
+
+#if __cplusplus < 201703L
+namespace fs = std::experimental::filesystem;
+#else
+namespace fs = std::filesystem;
+#endif
+
 
 class b2Body;
 

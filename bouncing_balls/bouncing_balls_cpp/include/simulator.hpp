@@ -9,9 +9,6 @@
 #include "common_types.hpp"
 
 
-namespace fs = std::filesystem;
-
-
 class b2World;
 class b2Body;
 struct b2BodyDef;

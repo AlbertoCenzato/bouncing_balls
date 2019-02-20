@@ -168,11 +168,12 @@ BouncingBalls::BouncingBalls(const Config &config) : config_(config) {
 }
 
 
-void BouncingBalls::generate(const fs::path &dataset_dir, bool suppress_output) {
-	if (!fs::exists(dataset_dir)) fs::create_directory(dataset_dir);
-	auto file_path = dataset_dir / BouncingBalls::FILE_NAME;
+void BouncingBalls::generate(const std::string & dataset_dir, bool suppress_output) {
+	fs::path path(dataset_dir);
+	if (!fs::exists(path)) fs::create_directory(path);
+	auto file_path = path / BouncingBalls::FILE_NAME;
 
-	generate_(dataset_dir, file_path, suppress_output);
+	generate_(path, file_path, suppress_output);
 }
         
       
