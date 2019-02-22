@@ -9,15 +9,13 @@ if (MSVC_VERSION GREATER_EQUAL "1900")
     endif()
 endif()
 
-set(BOX2D_BUILD_STATIC true)
+add_subdirectory(3rdparty)
 
-add_subdirectory(3rdparty/cnpy)
-add_subdirectory(3rdparty/Box2D)
-
-set(PYBIND11_PYTHON_VERSION 3.6)
-add_subdirectory(3rdparty/pybind11)
-
-include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/3rdparty)
+include_directories(
+	${CMAKE_SOURCE_DIR}/include 
+	${BOX2D_INCLUDE_DIR}
+	${CNPY_INCLUDE_DIR}
+)
 
 file (GLOB_RECURSE GLOB_SRC	src/*.cpp)
 
