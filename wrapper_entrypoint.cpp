@@ -7,10 +7,9 @@
 #include "include/bouncing_balls.hpp"
 
 namespace py = pybind11;
-//namespace fs = std::experimental::filesystem;
 
 
-PYBIND11_MODULE(bouncing_balls_cpp, m) {
+PYBIND11_MODULE(bouncing_balls, m) {
 	py::enum_<bounce::Channels>(m, "Kind")
 		.value("FIRST", bounce::Channels::FIRST)
 		.value("LAST", bounce::Channels::LAST);
