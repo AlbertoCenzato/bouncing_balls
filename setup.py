@@ -64,7 +64,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='bouncing_balls',
-    version='0.10.0',
+    version='0.10.1',
     author='Alberto Cenzato',
     author_email='alberto.cenzato@outlook.it',
     description='Random bouncing balls dataset generator',
