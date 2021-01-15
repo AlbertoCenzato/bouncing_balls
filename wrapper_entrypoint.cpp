@@ -32,5 +32,7 @@ PYBIND11_MODULE(bouncing_balls, m) {
 
 	py::class_<bounce::BouncingBalls>(m, "BouncingBalls")
 		.def(py::init<const bounce::BouncingBalls::Config &>())
-		.def("generate", &bounce::BouncingBalls::generate);
+		.def("generate", &bounce::BouncingBalls::generate,
+			py::arg("output_dir"),
+			py::arg("suppress_output")=true);
 }
